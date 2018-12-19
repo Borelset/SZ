@@ -132,29 +132,38 @@ int main(int argc, char * argv[])
     double sum3 = 0, sum4 = 0;
     double sum = 0, prodSum = 0, relerr = 0;
    
-    double maxpw_relerr = 0; 
+    double maxpw_relerr = 0;
+
+    //FILE* decompressionLog = fopen("decompressionLog", "w");
+    //char buffer[1024];
+
     for (i = 0; i < nbEle; i++)
     {
         if (Max < ori_data[i]) Max = ori_data[i];
         if (Min > ori_data[i]) Min = ori_data[i];
-        
+
         float err = fabs(data[i] - ori_data[i]);
-	if(ori_data[i]!=0)
-	{
-		if(fabs(ori_data[i])>1)
-			relerr = err/ori_data[i];
-		else
-			relerr = err;
-		if(maxpw_relerr<relerr)
-			maxpw_relerr = relerr;
+
+        //memset(buffer, 0, 1024);
+        //sprintf(buffer, "i=%ld\tori:%f\tcompressed:%f\n", i, ori_data[i], data[i]);
+        //fwrite(buffer, 1, sizeof(buffer), decompressionLog);
+
+        if(ori_data[i]!=0)
+        {
+            if(fabs(ori_data[i])>1)
+                relerr = err/ori_data[i];
+            else
+                relerr = err;
+            if(maxpw_relerr<relerr)
+                maxpw_relerr = relerr;
         }
 
-	if (diffMax < err)
-		diffMax = err;
+        if (diffMax < err)
+            diffMax = err;
         prodSum += (ori_data[i]-mean1)*(data[i]-mean2);
         sum3 += (ori_data[i] - mean1)*(ori_data[i]-mean1);
         sum4 += (data[i] - mean2)*(data[i]-mean2);
-	sum += err*err;	
+        sum += err*err;
     }
     double std1 = sqrt(sum3/nbEle);
     double std2 = sqrt(sum4/nbEle);

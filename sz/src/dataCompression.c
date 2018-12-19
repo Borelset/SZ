@@ -115,6 +115,29 @@ float computeRangeSize_float(float* oriData, size_t size, float* valueRangeSize,
 	return min;
 }
 
+float computeRangeSize_float_alter(float* oriData, size_t size, float* valueRangeSize, float* medianValue, unsigned char * signs, bool* positive)
+{
+    size_t i = 0;
+    float min = oriData[0];
+    float max = min;
+    for(i=1;i<size;i++)
+    {
+        float data = oriData[i];
+        if(data <0){
+            signs[i] = 1;
+            *positive = false;
+        }
+        if(min>data)
+            min = data;
+        else if(max<data)
+            max = data;
+    }
+
+    *valueRangeSize = max - min;
+    *medianValue = min + *valueRangeSize/2;
+    return min;
+}
+
 double computeRangeSize_double(double* oriData, size_t size, double* valueRangeSize, double* medianValue)
 {
 	size_t i = 0;
@@ -602,7 +625,7 @@ int initRandomAccessBytes(unsigned char* raBytes)
 int generateLossyCoefficients_float(float* oriData, double precision, size_t nbEle, int* reqBytesLength, int* resiBitsLength, float* medianValue, float* decData)
 {
 	float valueRangeSize;
-	
+
 	computeRangeSize_float(oriData, nbEle, &valueRangeSize, medianValue);
 	short radExpo = getExponent_float(valueRangeSize/2);
 	

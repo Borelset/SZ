@@ -1354,6 +1354,7 @@ void decompressDataSeries_float_1D_pwrgroup(float** data, size_t dataSeriesLengt
 void decompressDataSeries_float_1D_pwr_pre_log(float** data, size_t dataSeriesLength, TightDataPointStorageF* tdps) {
 
 	decompressDataSeries_float_1D(data, dataSeriesLength, tdps);
+	/*
 	float threshold = tdps->minLogValue;
 	if(tdps->pwrErrBoundBytes_size > 0){
 		unsigned char * signs;
@@ -1366,12 +1367,14 @@ void decompressDataSeries_float_1D_pwr_pre_log(float** data, size_t dataSeriesLe
 		free(signs);
 	}
 	else{
+
 		for(size_t i=0; i<dataSeriesLength; i++){
 			if((*data)[i] < threshold) (*data)[i] = 0;
 			else (*data)[i] = exp2((*data)[i]);
 		}
-	}
 
+	}
+*/
 }
 
 void decompressDataSeries_float_2D_pwr_pre_log(float** data, size_t r1, size_t r2, TightDataPointStorageF* tdps) {

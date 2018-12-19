@@ -142,6 +142,9 @@ void decompressDataSeries_float_1D(float** data, size_t dataSeriesLength, TightD
 	
 	convertByteArray2IntArray_fast_2b(tdps->exactDataNum, tdps->leadNumArray, tdps->leadNumArray_size, &leadNum);
 
+    unsigned char * signs;
+    sz_lossless_decompress(confparams_dec->losslessCompressor, tdps->pwrErrBoundBytes, tdps->pwrErrBoundBytes_size, &signs, dataSeriesLength);
+
 	*data = (float*)malloc(sizeof(float)*dataSeriesLength);
 
 	int* type = (int*)malloc(dataSeriesLength*sizeof(int));
@@ -213,7 +216,7 @@ void decompressDataSeries_float_1D(float** data, size_t dataSeriesLength, TightD
 		default:
 			//predValue = 2 * (*data)[i-1] - (*data)[i-2];
 			predValue = (*data)[i-1];
-			(*data)[i] = predValue + (type_-exe_params->intvRadius)*interval;
+			(*data)[i] = fabs(predValue) * pow((1+tdps->realPrecision), type_ - exe_params->intvRadius) * (signs[i] ? -1:1);
 			break;
 		}
 		//printf("%.30G\n",(*data)[i]);
@@ -226,6 +229,7 @@ void decompressDataSeries_float_1D(float** data, size_t dataSeriesLength, TightD
 	
 	free(leadNum);
 	free(type);
+	free(signs);
 	return;
 }
 

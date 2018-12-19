@@ -26,6 +26,7 @@
 #include "rw.h"
 #include "sz_float_ts.h"
 #include "utility.h"
+#include "CacheTable.h"
 
 unsigned char* SZ_skip_compress_float(float* data, size_t dataLength, size_t* outSize)
 {
@@ -337,7 +338,15 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 		quantization_intervals = optimize_intervals_float_1D_opt(oriData, dataLength, realPrecision);
 	else
 		quantization_intervals = exe_params->intvCapacity;
-	updateQuantizationInfo(quantization_intervals);	
+	updateQuantizationInfo(quantization_intervals);
+
+    double* precisionTable = (double*)malloc(sizeof(double)*quantization_intervals);
+
+    for(int i=0; i<quantization_intervals; i++){
+        precisionTable[i] = pow((1+realPrecision), i - exe_params->intvRadius);
+    }
+    double smallest_precision = precisionTable[0], largest_precision = precisionTable[quantization_intervals-1];
+    CacheTableBuild(precisionTable, quantization_intervals, smallest_precision, largest_precision, realPrecision, quantization_intervals);
 
 	size_t i;
 	int reqLength;
@@ -366,6 +375,8 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 	int resiBitsLength = reqLength%8;
 	float last3CmprsData[3] = {0};
 
+	int miss=0, hit=0;
+
 	FloatValueCompressElement *vce = (FloatValueCompressElement*)malloc(sizeof(FloatValueCompressElement));
 	LossyCompressionElement *lce = (LossyCompressionElement*)malloc(sizeof(LossyCompressionElement));
 				
@@ -376,6 +387,7 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 	memcpy(preDataBytes,vce->curBytes,4);
 	addExactData(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
 	listAdd_float(last3CmprsData, vce->data);
+	miss++;
 #ifdef HAVE_TIMECMPR	
 	if(confparams_cpr->szMode == SZ_TEMPORAL_COMPRESSION)
 		decData[0] = vce->data;
@@ -388,61 +400,35 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 	memcpy(preDataBytes,vce->curBytes,4);
 	addExactData(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
 	listAdd_float(last3CmprsData, vce->data);
+	miss++;
 #ifdef HAVE_TIMECMPR	
 	if(confparams_cpr->szMode == SZ_TEMPORAL_COMPRESSION)
 		decData[1] = vce->data;
 #endif
 	int state;
-	double checkRadius;
+	//double checkRadius;
 	float curData;
 	float pred;
-	float predAbsErr;
-	checkRadius = (exe_params->intvCapacity-1)*realPrecision;
-	double interval = 2*realPrecision;
+	//float predAbsErr;
+	//checkRadius = (exe_params->intvCapacity-1)*realPrecision;
+	//double interval = 2*realPrecision;
+	float predRelErrRatio;
 	
 	for(i=2;i<dataLength;i++)
 	{	
 		curData = spaceFillingValue[i];
 		//pred = 2*last3CmprsData[0] - last3CmprsData[1];
 		pred = last3CmprsData[0];
-		predAbsErr = fabs(curData - pred);	
-		if(predAbsErr<checkRadius)
+		//predAbsErr = fabs(curData - pred);
+		predRelErrRatio = fabs(curData / pred);
+		if(CacheTableIsInBoundary(predRelErrRatio))
 		{
-			state = (predAbsErr/realPrecision+1)/2;
-			if(curData>=pred)
-			{
-				type[i] = exe_params->intvRadius+state;
-				pred = pred + state*interval;
-			}
-			else //curData<pred
-			{
-				type[i] = exe_params->intvRadius-state;
-				pred = pred - state*interval;
-			}
-				
-			//double-check the prediction error in case of machine-epsilon impact	
-			if(fabs(curData-pred)>realPrecision)
-			{	
-				type[i] = 0;				
-				compressSingleFloatValue(vce, curData, realPrecision, medianValue, reqLength, reqBytesLength, resiBitsLength);
-				updateLossyCompElement_Float(vce->curBytes, preDataBytes, reqBytesLength, resiBitsLength, lce);
-				memcpy(preDataBytes,vce->curBytes,4);
-				addExactData(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);		
-				
-				listAdd_float(last3CmprsData, vce->data);	
-#ifdef HAVE_TIMECMPR					
-				if(confparams_cpr->szMode == SZ_TEMPORAL_COMPRESSION)
-					decData[i] = vce->data;
-#endif					
-			}
-			else
-			{
-				listAdd_float(last3CmprsData, pred);
-#ifdef HAVE_TIMECMPR					
-				if(confparams_cpr->szMode == SZ_TEMPORAL_COMPRESSION)
-					decData[i] = pred;			
-#endif	
-			}	
+			state = CacheTableFind(predRelErrRatio);
+			type[i] = state;
+			pred = pred * precisionTable[state];
+			listAdd_float(last3CmprsData, pred);
+			hit++;
+
 			continue;
 		}
 		
@@ -454,6 +440,7 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 		addExactData(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
 
 		listAdd_float(last3CmprsData, vce->data);
+		miss++;
 #ifdef HAVE_TIMECMPR
 		if(confparams_cpr->szMode == SZ_TEMPORAL_COMPRESSION)
 			decData[i] = vce->data;
@@ -461,6 +448,7 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 		
 	}//end of for
 		
+	printf("miss:%d, hit:%d\n", miss, hit);
 //	char* expSegmentsInBytes;
 //	int expSegmentsInBytes_size = convertESCToBytes(esc, &expSegmentsInBytes);
 	size_t exactDataNum = exactLeadNumArray->size;
@@ -3845,7 +3833,7 @@ unsigned int optimize_intervals_float_1D_opt(float *oriData, size_t dataLength, 
 		totalSampleSize++;
 		pred_value = data_pos[-1];
 		pred_err = fabs(pred_value - *data_pos);
-		radiusIndex = (unsigned long)((pred_err/realPrecision+1)/2);
+		radiusIndex = (unsigned long)((pred_err/(realPrecision*(*data_pos))+1)/2);
 		if(radiusIndex>=confparams_cpr->maxRangeRadius)
 			radiusIndex = confparams_cpr->maxRangeRadius - 1;			
 		intervals[radiusIndex]++;
