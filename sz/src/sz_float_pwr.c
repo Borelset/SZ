@@ -25,6 +25,8 @@
 #include "rw.h"
 #include "utility.h"
 
+#define FLOAT_MIN_VALUE -3.40e38
+
 void compute_segment_precisions_float_1D(float *oriData, size_t dataLength, float* pwrErrBound, unsigned char* pwrErrBoundBytes, double globalPrecision)
 {
 	size_t i = 0, j = 0, k = 0;
@@ -1847,7 +1849,7 @@ void SZ_compress_args_float_NoCkRngeNoGzip_1D_pwr_pre_log(unsigned char** newByt
 }
 
 void SZ_compress_args_float_NoCkRngeNoGzip_1D_pwr_pre_log_alter(unsigned char** newByteData, float *oriData, double pwrErrRatio, size_t dataLength, size_t *outSize, float valueRangeSize, float medianValue_f,
-																unsigned char* signs, bool* positive){
+																unsigned char* signs, bool* positive, float min, float max){
 
 	//float * log_data = (float *) malloc(dataLength * sizeof(float));
 	// preprocess
@@ -1882,6 +1884,12 @@ void SZ_compress_args_float_NoCkRngeNoGzip_1D_pwr_pre_log_alter(unsigned char** 
 		}
 	}
 	 */
+	float multiplier = pow((1+pwrErrRatio), 2.0001);
+	for(int i=0; i<dataLength; i++){
+		if(oriData[i] == 0){
+			oriData[i] = (min+FLOAT_MIN_VALUE) / 2 * multiplier;
+		}
+	}
 
 	//struct ClockPoint clockPointPW;
 	//TimeDurationStart("point-wise", &clockPointPW);
@@ -1889,7 +1897,7 @@ void SZ_compress_args_float_NoCkRngeNoGzip_1D_pwr_pre_log_alter(unsigned char** 
 	//TimeDurationEnd(&clockPointPW);
 	//struct ClockPoint clockPointSS;
 	//TimeDurationStart("struct into stream", &clockPointSS);
-	//tdps->minLogValue = min_log_data - 1.0001*realPrecision;
+	tdps->minLogValue = (min+FLOAT_MIN_VALUE) / 2 * (1+pwrErrRatio);
 	//free(log_data);
 	if(!(*positive)){
 		unsigned char * comp_signs;

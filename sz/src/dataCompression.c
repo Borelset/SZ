@@ -120,6 +120,7 @@ float computeRangeSize_float_alter(float* oriData, size_t size, float* valueRang
     size_t i = 0;
     float min = oriData[0];
     float max = min;
+
     for(i=1;i<size;i++)
     {
         float data = oriData[i];

@@ -363,10 +363,10 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 	float* spaceFillingValue = oriData; //
 	
 	DynamicIntArray *exactLeadNumArray;
-	new_DIA(&exactLeadNumArray, DynArrayInitLen);
+	new_DIA(&exactLeadNumArray, dataLength/2/8);
 	
 	DynamicByteArray *exactMidByteArray;
-	new_DBA(&exactMidByteArray, DynArrayInitLen);
+	new_DBA(&exactMidByteArray, dataLength/2);
 	
 	DynamicIntArray *resiBitArray;
 	new_DIA(&resiBitArray, DynArrayInitLen);
@@ -393,7 +393,7 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 	memcpy(preDataBytes,vce->curBytes,4);
 	addExactData(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
 	listAdd_float(last3CmprsData, vce->data);
-	miss++;
+	//miss++;
 #ifdef HAVE_TIMECMPR	
 	if(confparams_cpr->szMode == SZ_TEMPORAL_COMPRESSION)
 		decData[0] = vce->data;
@@ -406,7 +406,7 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 	memcpy(preDataBytes,vce->curBytes,4);
 	addExactData(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
 	listAdd_float(last3CmprsData, vce->data);
-	miss++;
+	//miss++;
 #ifdef HAVE_TIMECMPR	
 	if(confparams_cpr->szMode == SZ_TEMPORAL_COMPRESSION)
 		decData[1] = vce->data;
@@ -426,14 +426,15 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 		//pred = 2*last3CmprsData[0] - last3CmprsData[1];
 		pred = last3CmprsData[0];
 		//predAbsErr = fabs(curData - pred);
-		predRelErrRatio = fabs(curData / pred);
-		if(CacheTableIsInBoundary(predRelErrRatio))
+		predRelErrRatio = fabsf(curData / pred);
+		uint32_t index = CacheTableGetIndex(predRelErrRatio, bits);
+		if(index <= topIndex && index > baseIndex)
 		{
-			state = CacheTableFind(predRelErrRatio);
+			state = g_InverseTable[index-baseIndex];
 			type[i] = state;
 			pred = pred * precisionTable[state];
 			listAdd_float(last3CmprsData, pred);
-			hit++;
+			//hit++;
 
 			continue;
 		}
@@ -446,7 +447,7 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 		addExactData(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
 
 		listAdd_float(last3CmprsData, vce->data);
-		miss++;
+		//miss++;
 #ifdef HAVE_TIMECMPR
 		if(confparams_cpr->szMode == SZ_TEMPORAL_COMPRESSION)
 			decData[i] = vce->data;
@@ -454,7 +455,7 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 		
 	}//end of for
 		
-	printf("miss:%d, hit:%d\n", miss, hit);
+	//printf("miss:%d, hit:%d\n", miss, hit);
     //TimeDurationEnd(&clockPointBegin);
     //struct ClockPoint clockPointbs;
     //TimeDurationStart("build struct", &clockPointbs);
@@ -1862,7 +1863,7 @@ int errBoundMode, double absErr_Bound, double relBoundRatio, double pwRelBoundRa
 		{
 			if(confparams_cpr->errorBoundMode>=PW_REL)
 			{
-				SZ_compress_args_float_NoCkRngeNoGzip_1D_pwr_pre_log_alter(&tmpByteData, oriData, pwRelBoundRatio, r1, &tmpOutSize, valueRangeSize, medianValue, signs, &positive);
+				SZ_compress_args_float_NoCkRngeNoGzip_1D_pwr_pre_log_alter(&tmpByteData, oriData, pwRelBoundRatio, r1, &tmpOutSize, valueRangeSize, medianValue, signs, &positive, min, max);
 				//SZ_compress_args_float_NoCkRngeNoGzip_1D_pwrgroup(&tmpByteData, oriData, r1, absErr_Bound, relBoundRatio, pwRelBoundRatio, valueRangeSize, medianValue, &tmpOutSize);
 			}
 			else
