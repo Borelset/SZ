@@ -46,6 +46,7 @@ void qinsert(HuffmanTree *huffmanTree, node n);
 node qremove(HuffmanTree *huffmanTree);
 void build_code(HuffmanTree *huffmanTree, node n, int len, unsigned long out1, unsigned long out2);
 void init(HuffmanTree *huffmanTree, int *s, size_t length);
+void init_static(HuffmanTree *huffmanTree, int *s, size_t length);
 void encode(HuffmanTree *huffmanTree, int *s, size_t length, unsigned char *out, size_t *outSize);
 void decode(unsigned char *s, size_t targetLength, node t, int *out);
 void pad_tree_uchar(HuffmanTree* huffmanTree, unsigned char* L, unsigned char* R, unsigned int* C, unsigned char* t, unsigned int i, node root);
@@ -58,6 +59,7 @@ void unpad_tree_uint(HuffmanTree* huffmanTree, unsigned int* L, unsigned int* R,
 node reconstruct_HuffTree_from_bytes_anyStates(HuffmanTree *huffmanTree, unsigned char* bytes, int nodeCount);
 
 void encode_withTree(HuffmanTree* huffmanTree, int *s, size_t length, unsigned char **out, size_t *outSize);
+void encode_withTree_static(HuffmanTree* huffmanTree, int *s, size_t length, unsigned char **out, size_t *outSize);
 void decode_withTree(HuffmanTree* huffmanTree, unsigned char *s, size_t targetLength, int *out);
 
 void SZ_ReleaseHuffman(HuffmanTree* huffmanTree);

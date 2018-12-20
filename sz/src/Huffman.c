@@ -12,6 +12,7 @@
 #include <string.h>
 #include "Huffman.h"
 #include "sz.h"
+#include "TimeDuration.h"
 
 
 HuffmanTree* createHuffmanTree(int stateNum)
@@ -154,19 +155,37 @@ void init(HuffmanTree* huffmanTree, int *s, size_t length)
 	size_t i, index;
 	size_t *freq = (size_t *)malloc(huffmanTree->allNodes*sizeof(size_t));
 	memset(freq, 0, huffmanTree->allNodes*sizeof(size_t));
-	for(i = 0;i < length;i++) 
+	for(i = 0;i < length;i++)
 	{
 		index = s[i];
 		freq[index]++;
 	}
- 
+
 	for (i = 0; i < huffmanTree->allNodes; i++)
-		if (freq[i]) 
+		if (freq[i])
 			qinsert(huffmanTree, new_node(huffmanTree, freq[i], i, 0, 0));
- 
-	while (huffmanTree->qend > 2) 
+
+	while (huffmanTree->qend > 2)
 		qinsert(huffmanTree, new_node(huffmanTree, 0, 0, qremove(huffmanTree), qremove(huffmanTree)));
- 
+
+	build_code(huffmanTree, huffmanTree->qq[1], 0, 0, 0);
+	free(freq);
+}
+
+void init_static(HuffmanTree* huffmanTree, int *s, size_t length)
+{
+	size_t i, index;
+	size_t *freq = (size_t *)malloc(huffmanTree->allNodes*sizeof(size_t));
+	memset(freq, 0, huffmanTree->allNodes*sizeof(size_t));
+
+
+	for (i = 0; i < huffmanTree->allNodes; i++)
+		if (freq[i])
+			qinsert(huffmanTree, new_node(huffmanTree, freq[i], i, 0, 0));
+
+	while (huffmanTree->qend > 2)
+		qinsert(huffmanTree, new_node(huffmanTree, 0, 0, qremove(huffmanTree), qremove(huffmanTree)));
+
 	build_code(huffmanTree, huffmanTree->qq[1], 0, 0, 0);
 	free(freq);
 }
@@ -198,7 +217,7 @@ void encode(HuffmanTree *huffmanTree, int *s, size_t length, unsigned char *out,
 		{
 			byteSize = bitSize%8==0 ? bitSize/8 : bitSize/8+1; //it's equal to the number of bytes involved (for *outSize)
 			byteSizep = bitSize/8; //it's used to move the pointer p for next data
-			if(byteSize<=8)				
+			if(byteSize<=8)
 			{
 				longToBytes_bigEndian(p, (huffmanTree->code[state])[0]);
 				p += byteSizep;
@@ -206,22 +225,22 @@ void encode(HuffmanTree *huffmanTree, int *s, size_t length, unsigned char *out,
 			else //byteSize>8
 			{
 				longToBytes_bigEndian(p, (huffmanTree->code[state])[0]);
-				p += 8;			
+				p += 8;
 				longToBytes_bigEndian(p, (huffmanTree->code[state])[1]);
-				p += (byteSizep - 8);		
+				p += (byteSizep - 8);
 			}
 			*outSize += byteSize;
 			lackBits = bitSize%8==0 ? 0 : 8 - bitSize%8;
 		}
 		else
 		{
-			*p = (*p) | (unsigned char)((huffmanTree->code[state])[0] >> (64 - lackBits));			
+			*p = (*p) | (unsigned char)((huffmanTree->code[state])[0] >> (64 - lackBits));
 			if(lackBits < bitSize)
 			{
 				p++;
 				//(*outSize)++;
 				long newCode = (huffmanTree->code[state])[0] << lackBits;
-				longToBytes_bigEndian(p, newCode);				
+				longToBytes_bigEndian(p, newCode);
 
 				if(bitSize<=64)
 				{
@@ -237,13 +256,13 @@ void encode(HuffmanTree *huffmanTree, int *s, size_t length, unsigned char *out,
 					byteSizep = 7; //must be 7 bytes, because lackBits!=0
 					p+=byteSizep;
 					(*outSize)+=byteSize;
-					
+
 					bitSize -= 64;
 					if(lackBits < bitSize)
 					{
 						*p = (*p) | (unsigned char)((huffmanTree->code[state])[0] >> (64 - lackBits));
 						p++;
-						//(*outSize)++;						
+						//(*outSize)++;
 						newCode = (huffmanTree->code[state])[1] << lackBits;
 						longToBytes_bigEndian(p, newCode);
 						bitSize -= lackBits;
@@ -251,13 +270,13 @@ void encode(HuffmanTree *huffmanTree, int *s, size_t length, unsigned char *out,
 						byteSizep = bitSize/8;
 						p += byteSizep;
 						(*outSize)+=byteSize;
-						lackBits = bitSize%8==0 ? 0 : 8 - bitSize%8;						
+						lackBits = bitSize%8==0 ? 0 : 8 - bitSize%8;
 					}
 					else //lackBits >= bitSize
 					{
 						*p = (*p) | (unsigned char)((huffmanTree->code[state])[0] >> (64 - bitSize));
 						lackBits -= bitSize;
-					}		
+					}
 				}
 			}
 			else //lackBits >= bitSize
@@ -648,6 +667,8 @@ node reconstruct_HuffTree_from_bytes_anyStates(HuffmanTree *huffmanTree, unsigne
 
 void encode_withTree(HuffmanTree* huffmanTree, int *s, size_t length, unsigned char **out, size_t *outSize)
 {
+    //struct ClockPoint clockPointInit;
+    //TimeDurationStart("init", &clockPointInit);
 	size_t i; 
 	int nodeCount = 0;
 	unsigned char *treeBytes, buffer[4];
@@ -656,6 +677,9 @@ void encode_withTree(HuffmanTree* huffmanTree, int *s, size_t length, unsigned c
 	for (i = 0; i < huffmanTree->stateNum; i++)
 		if (huffmanTree->code[i]) nodeCount++; 
 	nodeCount = nodeCount*2-1;
+	//TimeDurationEnd(&clockPointInit);
+	//struct ClockPoint clockPointST;
+	//TimeDurationStart("save tree", &clockPointST);
 	unsigned int treeByteSize = convert_HuffTree_to_bytes_anyStates(huffmanTree,nodeCount, &treeBytes);
 
 	*out = (unsigned char*)malloc(length*sizeof(int)+treeByteSize);
@@ -666,9 +690,12 @@ void encode_withTree(HuffmanTree* huffmanTree, int *s, size_t length, unsigned c
 	memcpy(*out+8, treeBytes, treeByteSize);
 	free(treeBytes);
 	size_t enCodeSize = 0;
+	//TimeDurationEnd(&clockPointST);
+	//struct ClockPoint clockPointEncode;
+	//TimeDurationStart("encode", &clockPointEncode);
 	encode(huffmanTree, s, length, *out+8+treeByteSize, &enCodeSize);
 	*outSize = 8+treeByteSize+enCodeSize;
-	
+	//TimeDurationEnd(&clockPointEncode);
 	//unsigned short state[length];
 	//decode(*out+4+treeByteSize, enCodeSize, qqq[0], state);
 	//printf("dataSeriesLength=%d",length );
