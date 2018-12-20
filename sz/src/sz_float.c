@@ -28,6 +28,7 @@
 #include "utility.h"
 #include "CacheTable.h"
 #include "TimeDuration.h"
+#include "math.h"
 
 unsigned char* SZ_skip_compress_float(float* data, size_t dataLength, size_t* outSize)
 {
@@ -3851,11 +3852,12 @@ unsigned int optimize_intervals_float_1D_opt(float *oriData, size_t dataLength, 
 	size_t totalSampleSize = 0;//dataLength/confparams_cpr->sampleDistance;
 
 	float * data_pos = oriData + 2;
+	float divider = log(1+realPrecision);
 	while(data_pos - oriData < dataLength){
 		totalSampleSize++;
 		pred_value = data_pos[-1];
-		pred_err = fabs(pred_value - *data_pos);
-		radiusIndex = (unsigned long)((pred_err/(realPrecision*(*data_pos))+1)/2);
+		pred_err = fabs(*data_pos / pred_value);
+		radiusIndex = (unsigned long)fabs(log(pred_err)-divider);
 		if(radiusIndex>=confparams_cpr->maxRangeRadius)
 			radiusIndex = confparams_cpr->maxRangeRadius - 1;			
 		intervals[radiusIndex]++;
