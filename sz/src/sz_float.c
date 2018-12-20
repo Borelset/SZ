@@ -27,6 +27,7 @@
 #include "sz_float_ts.h"
 #include "utility.h"
 #include "CacheTable.h"
+#include "TimeDuration.h"
 
 unsigned char* SZ_skip_compress_float(float* data, size_t dataLength, size_t* outSize)
 {
@@ -332,7 +333,9 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 	if(confparams_cpr->szMode == SZ_TEMPORAL_COMPRESSION)
 		decData = (float*)(multisteps->hist_data);
 #endif	
-	
+
+	//struct ClockPoint clockPointBuild;
+	//TimeDurationStart("build", &clockPointBuild);
 	unsigned int quantization_intervals;
 	if(exe_params->optQuantMode==1)
 		quantization_intervals = optimize_intervals_float_1D_opt(oriData, dataLength, realPrecision);
@@ -379,6 +382,9 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 
 	FloatValueCompressElement *vce = (FloatValueCompressElement*)malloc(sizeof(FloatValueCompressElement));
 	LossyCompressionElement *lce = (LossyCompressionElement*)malloc(sizeof(LossyCompressionElement));
+	//TimeDurationEnd(&clockPointBuild);
+	//struct ClockPoint clockPointBegin;
+	//TimeDurationStart("begin", &clockPointBegin);
 				
 	//add the first data	
 	type[0] = 0;
@@ -449,6 +455,9 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 	}//end of for
 		
 	printf("miss:%d, hit:%d\n", miss, hit);
+    //TimeDurationEnd(&clockPointBegin);
+    //struct ClockPoint clockPointbs;
+    //TimeDurationStart("build struct", &clockPointbs);
 //	char* expSegmentsInBytes;
 //	int expSegmentsInBytes_size = convertESCToBytes(esc, &expSegmentsInBytes);
 	size_t exactDataNum = exactLeadNumArray->size;
@@ -475,7 +484,7 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 	free(vce);
 	free(lce);	
 	free(exactMidByteArray); //exactMidByteArray->array has been released in free_TightDataPointStorageF(tdps);
-	
+	//TimeDurationEnd(&clockPointbs);
 	return tdps;
 }
 
@@ -1796,6 +1805,8 @@ int SZ_compress_args_float(unsigned char** newByteData, float *oriData,
 size_t r5, size_t r4, size_t r3, size_t r2, size_t r1, size_t *outSize, 
 int errBoundMode, double absErr_Bound, double relBoundRatio, double pwRelBoundRatio)
 {
+    //struct ClockPoint clockPointStart;
+    //TimeDurationStart("Start", &clockPointStart);
 	confparams_cpr->errorBoundMode = errBoundMode;
 	if(errBoundMode==PW_REL)
 	{
@@ -1818,8 +1829,11 @@ int errBoundMode, double absErr_Bound, double relBoundRatio, double pwRelBoundRa
 	}
 	
 	float valueRangeSize = 0, medianValue = 0;
-	
-	float min = computeRangeSize_float(oriData, dataLength, &valueRangeSize, &medianValue);
+
+	unsigned char * signs = (unsigned char *) malloc(dataLength);
+	memset(signs, 0, dataLength);
+	bool positive = true;
+	float min = computeRangeSize_float_alter(oriData, dataLength, &valueRangeSize, &medianValue, signs, &positive);
 	float max = min+valueRangeSize;
 	double realPrecision = 0; 
 	
@@ -1831,13 +1845,16 @@ int errBoundMode, double absErr_Bound, double relBoundRatio, double pwRelBoundRa
 	}
 	else
 		realPrecision = getRealPrecision_float(valueRangeSize, errBoundMode, absErr_Bound, relBoundRatio, &status);
-		
+
+	//TimeDurationEnd(&clockPointStart);
 	if(valueRangeSize <= realPrecision)
 	{
 		SZ_compress_args_float_withinRange(newByteData, oriData, dataLength, outSize);
 	}
 	else
 	{
+	    //struct ClockPoint clockPointMethod;
+        //TimeDurationStart("method", &clockPointMethod);
 		size_t tmpOutSize = 0;
 		unsigned char* tmpByteData;
 		
@@ -1845,7 +1862,7 @@ int errBoundMode, double absErr_Bound, double relBoundRatio, double pwRelBoundRa
 		{
 			if(confparams_cpr->errorBoundMode>=PW_REL)
 			{
-				SZ_compress_args_float_NoCkRngeNoGzip_1D_pwr_pre_log(&tmpByteData, oriData, pwRelBoundRatio, r1, &tmpOutSize, min, max);
+				SZ_compress_args_float_NoCkRngeNoGzip_1D_pwr_pre_log_alter(&tmpByteData, oriData, pwRelBoundRatio, r1, &tmpOutSize, valueRangeSize, medianValue, signs, &positive);
 				//SZ_compress_args_float_NoCkRngeNoGzip_1D_pwrgroup(&tmpByteData, oriData, r1, absErr_Bound, relBoundRatio, pwRelBoundRatio, valueRangeSize, medianValue, &tmpOutSize);
 			}
 			else
@@ -1942,6 +1959,9 @@ int errBoundMode, double absErr_Bound, double relBoundRatio, double pwRelBoundRa
 			printf("Error: doesn't support 5 dimensions for now.\n");
 			status = SZ_DERR; //dimension error
 		}
+		//TimeDurationEnd(&clockPointMethod);
+		//struct ClockPoint clockPointPost;
+		//TimeDurationStart("post", &clockPointPost);
 		//Call Gzip to do the further compression.
 		if(confparams_cpr->szMode==SZ_BEST_SPEED)
 		{
@@ -1958,6 +1978,7 @@ int errBoundMode, double absErr_Bound, double relBoundRatio, double pwRelBoundRa
 			printf("Error: Wrong setting of confparams_cpr->szMode in the float compression.\n");
 			status = SZ_MERR; //mode error			
 		}
+		//TimeDurationEnd(&clockPointPost);
 	}
 	
 	return status;

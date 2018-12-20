@@ -13,6 +13,7 @@
 #include "TightDataPointStorageF.h"
 #include "sz.h"
 #include "Huffman.h"
+#include "TimeDuration.h"
 //#include "rw.h"
 
 void new_TightDataPointStorageF_Empty(TightDataPointStorageF **this)
@@ -298,10 +299,13 @@ void new_TightDataPointStorageF(TightDataPointStorageF **this,
 	(*this)->rtypeArray = NULL;
 	(*this)->rtypeArray_size = 0;
 
+	//struct ClockPoint clockPointHuffman;
+	//TimeDurationStart("huffman start", &clockPointHuffman);
 	int stateNum = 2*intervals;
 	HuffmanTree* huffmanTree = createHuffmanTree(stateNum);
 	encode_withTree(huffmanTree, type, dataSeriesLength, &(*this)->typeArray, &(*this)->typeArray_size);
 	SZ_ReleaseHuffman(huffmanTree);
+	//TimeDurationEnd(&clockPointHuffman);
 		
 	(*this)->exactMidBytes = exactMidBytes;
 	(*this)->exactMidBytes_size = exactMidBytes_size;

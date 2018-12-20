@@ -45,6 +45,8 @@ void SZ_compress_args_float_NoCkRngeNoGzip_1D_pwrgroup(unsigned char** newByteDa
 size_t dataLength, double absErrBound, double relBoundRatio, double pwrErrRatio, float valueRangeSize, float medianValue_f, size_t *outSize);
 
 void SZ_compress_args_float_NoCkRngeNoGzip_1D_pwr_pre_log(unsigned char** newByteData, float *oriData, double pwrErrRatio, size_t dataLength, size_t *outSize, float min, float max);
+void SZ_compress_args_float_NoCkRngeNoGzip_1D_pwr_pre_log_alter(unsigned char** newByteData, float *oriData, double pwrErrRatio, size_t dataLength, size_t *outSize, float valueRangeSize, float medianValue_f,
+                                                                unsigned char* signs, bool* positive);
 void SZ_compress_args_float_NoCkRngeNoGzip_2D_pwr_pre_log(unsigned char** newByteData, float *oriData, double pwrErrRatio, size_t r1, size_t r2, size_t *outSize, float min, float max);
 void SZ_compress_args_float_NoCkRngeNoGzip_3D_pwr_pre_log(unsigned char** newByteData, float *oriData, double pwrErrRatio, size_t r1, size_t r2, size_t r3, size_t *outSize, float min, float max);
 

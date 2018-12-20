@@ -1783,21 +1783,21 @@ size_t dataLength, double absErrBound, double relBoundRatio, double pwrErrRatio,
 }
 
 #include <stdbool.h>
+#include <TimeDuration.h>
 
 void SZ_compress_args_float_NoCkRngeNoGzip_1D_pwr_pre_log(unsigned char** newByteData, float *oriData, double pwrErrRatio, size_t dataLength, size_t *outSize, float min, float max){
 
-	//float * log_data = (float *) malloc(dataLength * sizeof(float));
+	float * log_data = (float *) malloc(dataLength * sizeof(float));
 
 	unsigned char * signs = (unsigned char *) malloc(dataLength);
 	memset(signs, 0, dataLength);
 	// preprocess
 	float max_abs_log_data;
-    if(min == 0) max_abs_log_data = fabs(log2(fabs(max)));
-    else if(max == 0) max_abs_log_data = fabs(log2(fabs(min)));
-    else max_abs_log_data = fabs(log2(fabs(min))) > fabs(log2(fabs(max))) ? fabs(log2(fabs(min))) : fabs(log2(fabs(max)));
-    float min_log_data = max_abs_log_data;
+	if(min == 0) max_abs_log_data = fabs(log2(fabs(max)));
+	else if(max == 0) max_abs_log_data = fabs(log2(fabs(min)));
+	else max_abs_log_data = fabs(log2(fabs(min))) > fabs(log2(fabs(max))) ? fabs(log2(fabs(min))) : fabs(log2(fabs(max)));
+	float min_log_data = max_abs_log_data;
 	bool positive = true;
-	/*
 	for(size_t i=0; i<dataLength; i++){
 		if(oriData[i] < 0){
 			signs[i] = 1;
@@ -1812,12 +1812,9 @@ void SZ_compress_args_float_NoCkRngeNoGzip_1D_pwr_pre_log(unsigned char** newByt
 			if(log_data[i] < min_log_data) min_log_data = log_data[i];
 		}
 	}
-	 */
 
 	float valueRangeSize, medianValue_f;
-	computeRangeSize_float_alter(oriData, dataLength, &valueRangeSize, &medianValue_f, signs, &positive);
-	double realPrecision = pwrErrRatio;
-	/*
+	computeRangeSize_float(log_data, dataLength, &valueRangeSize, &medianValue_f);
 	if(fabs(min_log_data) > max_abs_log_data) max_abs_log_data = fabs(min_log_data);
 	double realPrecision = log2(1.0 + pwrErrRatio) - max_abs_log_data * 1.2e-7;
 	for(size_t i=0; i<dataLength; i++){
@@ -1825,13 +1822,12 @@ void SZ_compress_args_float_NoCkRngeNoGzip_1D_pwr_pre_log(unsigned char** newByt
 			log_data[i] = min_log_data - 2.0001*realPrecision;
 		}
 	}
-	 */
 
-    TightDataPointStorageF* tdps = SZ_compress_float_1D_MDQ(oriData, dataLength, realPrecision, valueRangeSize, medianValue_f);
-    tdps->minLogValue = min_log_data - 1.0001*realPrecision;
-    //free(log_data);
-    if(!positive){
-	    unsigned char * comp_signs;
+	TightDataPointStorageF* tdps = SZ_compress_float_1D_MDQ(log_data, dataLength, realPrecision, valueRangeSize, medianValue_f);
+	tdps->minLogValue = min_log_data - 1.0001*realPrecision;
+	free(log_data);
+	if(!positive){
+		unsigned char * comp_signs;
 		// compress signs
 		unsigned long signSize = sz_lossless_compress(confparams_cpr->losslessCompressor, confparams_cpr->gzipMode, signs, dataLength, &comp_signs);
 		tdps->pwrErrBoundBytes = comp_signs;
@@ -1843,11 +1839,77 @@ void SZ_compress_args_float_NoCkRngeNoGzip_1D_pwr_pre_log(unsigned char** newByt
 	}
 	free(signs);
 
-    convertTDPStoFlatBytes_float(tdps, newByteData, outSize);
-    if(*outSize>3 + MetaDataByteLength + exe_params->SZ_SIZE_TYPE + 1 + sizeof(float)*dataLength)
-            SZ_compress_args_float_StoreOriData(oriData, dataLength, newByteData, outSize);
+	convertTDPStoFlatBytes_float(tdps, newByteData, outSize);
+	if(*outSize>3 + MetaDataByteLength + exe_params->SZ_SIZE_TYPE + 1 + sizeof(float)*dataLength)
+		SZ_compress_args_float_StoreOriData(oriData, dataLength, newByteData, outSize);
 
-    free_TightDataPointStorageF(tdps);
+	free_TightDataPointStorageF(tdps);
+}
+
+void SZ_compress_args_float_NoCkRngeNoGzip_1D_pwr_pre_log_alter(unsigned char** newByteData, float *oriData, double pwrErrRatio, size_t dataLength, size_t *outSize, float valueRangeSize, float medianValue_f,
+																unsigned char* signs, bool* positive){
+
+	//float * log_data = (float *) malloc(dataLength * sizeof(float));
+	// preprocess
+	/*
+	float max_abs_log_data;
+    if(min == 0) max_abs_log_data = fabs(log2(fabs(max)));
+    else if(max == 0) max_abs_log_data = fabs(log2(fabs(min)));
+    else max_abs_log_data = fabs(log2(fabs(min))) > fabs(log2(fabs(max))) ? fabs(log2(fabs(min))) : fabs(log2(fabs(max)));
+    float min_log_data = max_abs_log_data;
+    bool positive = true;
+	for(size_t i=0; i<dataLength; i++){
+		if(oriData[i] < 0){
+			signs[i] = 1;
+			log_data[i] = -oriData[i];
+			positive = false;
+		}
+		else
+			log_data[i] = oriData[i];
+		if(log_data[i] > 0){
+			log_data[i] = log2(log_data[i]);
+			if(log_data[i] > max_abs_log_data) max_abs_log_data = log_data[i];
+			if(log_data[i] < min_log_data) min_log_data = log_data[i];
+		}
+	}
+	float valueRangeSize, medianValue_f;
+	computeRangeSize_float(oriData, dataLength, &valueRangeSize, &medianValue_f);
+	if(fabs(min_log_data) > max_abs_log_data) max_abs_log_data = fabs(min_log_data);
+	double realPrecision = log2(1.0 + pwrErrRatio) - max_abs_log_data * 1.2e-7;
+	for(size_t i=0; i<dataLength; i++){
+		if(oriData[i] == 0){
+			log_data[i] = min_log_data - 2.0001*realPrecision;
+		}
+	}
+	 */
+
+	//struct ClockPoint clockPointPW;
+	//TimeDurationStart("point-wise", &clockPointPW);
+	TightDataPointStorageF* tdps = SZ_compress_float_1D_MDQ(oriData, dataLength, pwrErrRatio, valueRangeSize, medianValue_f);
+	//TimeDurationEnd(&clockPointPW);
+	//struct ClockPoint clockPointSS;
+	//TimeDurationStart("struct into stream", &clockPointSS);
+	//tdps->minLogValue = min_log_data - 1.0001*realPrecision;
+	//free(log_data);
+	if(!(*positive)){
+		unsigned char * comp_signs;
+		// compress signs
+		unsigned long signSize = sz_lossless_compress(confparams_cpr->losslessCompressor, confparams_cpr->gzipMode, signs, dataLength, &comp_signs);
+		tdps->pwrErrBoundBytes = comp_signs;
+		tdps->pwrErrBoundBytes_size = signSize;
+	}
+	else{
+		tdps->pwrErrBoundBytes = NULL;
+		tdps->pwrErrBoundBytes_size = 0;
+	}
+	free(signs);
+
+	convertTDPStoFlatBytes_float(tdps, newByteData, outSize);
+	if(*outSize>3 + MetaDataByteLength + exe_params->SZ_SIZE_TYPE + 1 + sizeof(float)*dataLength)
+		SZ_compress_args_float_StoreOriData(oriData, dataLength, newByteData, outSize);
+
+	free_TightDataPointStorageF(tdps);
+	//TimeDurationEnd(&clockPointSS);
 }
 
 void SZ_compress_args_float_NoCkRngeNoGzip_2D_pwr_pre_log(unsigned char** newByteData, float *oriData, double pwrErrRatio, size_t r1, size_t r2, size_t *outSize, float min, float max){

@@ -5,17 +5,23 @@
 #ifndef SZ_MASTER_TIMEDURATION_H
 #define SZ_MASTER_TIMEDURATION_H
 
-static struct timeval t0, t1;
-static char* namePtr = NULL;
+#include <sys/time.h>
 
-static void TimeDurationStart(char* name){
-    gettimeofday(&t0, NULL);
-    namePtr = name;
+struct ClockPoint{
+    struct timeval t0, t1;
+    char* namePtr;
+};
+
+static void TimeDurationStart(char* name, struct ClockPoint* clockPoint){
+    gettimeofday(&clockPoint->t0, NULL);
+    clockPoint->namePtr = (char*)malloc(sizeof(name));
+    memcpy(clockPoint->namePtr, name, sizeof(name));
 }
 
-static void TimeDurationEnd(){
-    gettimeofday(&t1, NULL);
-    printf("%s:duration:%ldus\n", namePtr, (t1.tv_sec-t0.tv_sec)*1000000 + (t1.tv_usec - t0.tv_usec));
+static void TimeDurationEnd(struct ClockPoint* clockPoint){
+    gettimeofday(&clockPoint->t1, NULL);
+    printf("%s:duration:%ldus\n", clockPoint->namePtr, (clockPoint->t1.tv_sec-clockPoint->t0.tv_sec)*1000000 + (clockPoint->t1.tv_usec - clockPoint->t0.tv_usec));
+    free(clockPoint->namePtr);
 }
 
 #endif //SZ_MASTER_TIMEDURATION_H
