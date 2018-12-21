@@ -386,6 +386,9 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 	//TimeDurationEnd(&clockPointBuild);
 	//struct ClockPoint clockPointBegin;
 	//TimeDurationStart("begin", &clockPointBegin);
+
+    //FILE* file = fopen("compressLog", "w");
+    //char buffer[1024];
 				
 	//add the first data	
 	type[0] = 0;
@@ -395,6 +398,8 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 	addExactData(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
 	listAdd_float(last3CmprsData, vce->data);
 	//miss++;
+    //sprintf(buffer, "rate:%f\n", vce->data / spaceFillingValue[0]);
+    //fwrite(buffer, 1, strlen(buffer), file);
 #ifdef HAVE_TIMECMPR	
 	if(confparams_cpr->szMode == SZ_TEMPORAL_COMPRESSION)
 		decData[0] = vce->data;
@@ -407,6 +412,8 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 	memcpy(preDataBytes,vce->curBytes,4);
 	addExactData(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
 	listAdd_float(last3CmprsData, vce->data);
+    //sprintf(buffer, "rate:%f\n", vce->data / spaceFillingValue[1]);
+    //fwrite(buffer, 1, strlen(buffer), file);
 	//miss++;
 #ifdef HAVE_TIMECMPR	
 	if(confparams_cpr->szMode == SZ_TEMPORAL_COMPRESSION)
@@ -436,6 +443,8 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 			pred = pred * precisionTable[state];
 			listAdd_float(last3CmprsData, pred);
 			//hit++;
+            //sprintf(buffer, "rate:%f\n", pred / spaceFillingValue[i]);
+            //fwrite(buffer, 1, strlen(buffer), file);
 
 			continue;
 		}
@@ -448,6 +457,8 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 		addExactData(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
 
 		listAdd_float(last3CmprsData, vce->data);
+        //sprintf(buffer, "rate:%f\n", vce->data / curData);
+        //fwrite(buffer, 1, strlen(buffer), file);
 		//miss++;
 #ifdef HAVE_TIMECMPR
 		if(confparams_cpr->szMode == SZ_TEMPORAL_COMPRESSION)
@@ -1835,7 +1846,8 @@ int errBoundMode, double absErr_Bound, double relBoundRatio, double pwRelBoundRa
 	unsigned char * signs = (unsigned char *) malloc(dataLength);
 	memset(signs, 0, dataLength);
 	bool positive = true;
-	float min = computeRangeSize_float_alter(oriData, dataLength, &valueRangeSize, &medianValue, signs, &positive);
+	float nearZero = 0.0;
+	float min = computeRangeSize_float_alter(oriData, dataLength, &valueRangeSize, &medianValue, signs, &positive, &nearZero);
 	float max = min+valueRangeSize;
 	double realPrecision = 0; 
 	
@@ -1864,7 +1876,7 @@ int errBoundMode, double absErr_Bound, double relBoundRatio, double pwRelBoundRa
 		{
 			if(confparams_cpr->errorBoundMode>=PW_REL)
 			{
-				SZ_compress_args_float_NoCkRngeNoGzip_1D_pwr_pre_log_alter(&tmpByteData, oriData, pwRelBoundRatio, r1, &tmpOutSize, valueRangeSize, medianValue, signs, &positive, min, max);
+				SZ_compress_args_float_NoCkRngeNoGzip_1D_pwr_pre_log_alter(&tmpByteData, oriData, pwRelBoundRatio, r1, &tmpOutSize, valueRangeSize, medianValue, signs, &positive, min, max, nearZero);
 				//SZ_compress_args_float_NoCkRngeNoGzip_1D_pwrgroup(&tmpByteData, oriData, r1, absErr_Bound, relBoundRatio, pwRelBoundRatio, valueRangeSize, medianValue, &tmpOutSize);
 			}
 			else
@@ -3846,18 +3858,21 @@ unsigned int optimize_intervals_float_2D_opt(float *oriData, size_t r1, size_t r
 unsigned int optimize_intervals_float_1D_opt(float *oriData, size_t dataLength, double realPrecision)
 {	
 	size_t i = 0, radiusIndex;
-	float pred_value = 0, pred_err;
+	float pred_value = 0;
+	double pred_err;
 	size_t *intervals = (size_t*)malloc(confparams_cpr->maxRangeRadius*sizeof(size_t));
 	memset(intervals, 0, confparams_cpr->maxRangeRadius*sizeof(size_t));
 	size_t totalSampleSize = 0;//dataLength/confparams_cpr->sampleDistance;
 
 	float * data_pos = oriData + 2;
-	float divider = log(1+realPrecision);
+	float divider = log2(1+realPrecision);
+	int tempIndex = 0;
 	while(data_pos - oriData < dataLength){
+	    tempIndex++;
 		totalSampleSize++;
 		pred_value = data_pos[-1];
-		pred_err = fabs(*data_pos / pred_value);
-		radiusIndex = (unsigned long)fabs(log(pred_err)-divider);
+		pred_err = fabs((double)*data_pos / pred_value);
+		radiusIndex = (unsigned long)fabs(log2(pred_err)/divider+0.5);
 		if(radiusIndex>=confparams_cpr->maxRangeRadius)
 			radiusIndex = confparams_cpr->maxRangeRadius - 1;			
 		intervals[radiusIndex]++;

@@ -18,7 +18,7 @@ int CacheTableGetRequiredBits(double precision, int quantization_intervals){
 
 inline uint32_t CacheTableGetIndex(float value, int bits){
     uint32_t* ptr = (uint32_t*)&value;
-    int shift = 32 - 8 - bits;
+    int shift = 32 - 9 - bits;
     if(shift>0){
         return (*ptr) >> shift;
     }else{
@@ -46,10 +46,12 @@ inline int CacheTableIsInBoundary(uint32_t index){
 
 void CacheTableBuild(double * table, int count, double smallest, double largest, double precision, int quantization_intervals){
     bits = CacheTableGetRequiredBits(precision, quantization_intervals);
-    baseIndex = CacheTableGetIndex((float)smallest, bits);
+    baseIndex = CacheTableGetIndex((float)smallest, bits)+1;
     topIndex = CacheTableGetIndex((float)largest, bits);
-    uint32_t range = topIndex - baseIndex;
+    uint32_t range = topIndex - baseIndex + 1;
     g_InverseTable = (uint32_t *)malloc(sizeof(uint32_t) * range);
+
+    /*
     uint32_t fillInPos = 0;
     for(int i=0; i<count; i++){
         if(i == 0){
@@ -64,6 +66,18 @@ void CacheTableBuild(double * table, int count, double smallest, double largest,
         }
         fillInPos = index + 1;
     }
+     */
+    for(int i=count-1; i>0; i--){
+        uint32_t upperIndex = CacheTableGetIndex((float)table[i]*(1+precision), bits);
+        uint32_t lowerIndex = CacheTableGetIndex((float)table[i]/(1+precision), bits);
+        for(uint32_t j = lowerIndex; j<=upperIndex; j++){
+            if(j<baseIndex || j >topIndex){
+                continue;
+            }
+            g_InverseTable[j-baseIndex] = i;
+        }
+    }
+
 }
 
 inline uint32_t CacheTableFind(uint32_t index){

@@ -166,9 +166,10 @@ void decompressDataSeries_float_1D(float** data, size_t dataSeriesLength, TightD
 	reqBytesLength = tdps->reqLength/8;
 	resiBitsLength = tdps->reqLength%8;
 	medianValue = tdps->medianValue;
+	float threshold = tdps->minLogValue;
 	
 	int type_;
-	for (i = 0; i < dataSeriesLength; i++) {	
+	for (i = 0; i < dataSeriesLength; i++) {
 		type_ = type[i];
 		switch (type_) {
 		case 0:
@@ -217,6 +218,9 @@ void decompressDataSeries_float_1D(float** data, size_t dataSeriesLength, TightD
 			//predValue = 2 * (*data)[i-1] - (*data)[i-2];
 			predValue = (*data)[i-1];
 			(*data)[i] = fabs(predValue) * pow((1+tdps->realPrecision), type_ - exe_params->intvRadius) * (signs[i] ? -1:1);
+			if((*data)[i] < threshold && (*data)[i] > 0){
+                (*data)[i] = 0;
+			}
 			break;
 		}
 		//printf("%.30G\n",(*data)[i]);

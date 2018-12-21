@@ -34,7 +34,7 @@ int computeByteSizePerIntValue(long valueRangeSize);
 long computeRangeSize_int(void* oriData, int dataType, size_t size, int64_t* valueRangeSize);
 double computeRangeSize_double(double* oriData, size_t size, double* valueRangeSize, double* medianValue);
 float computeRangeSize_float(float* oriData, size_t size, float* valueRangeSize, float* medianValue);
-float computeRangeSize_float_alter(float* oriData, size_t size, float* valueRangeSize, float* medianValue, unsigned char * signs, bool* positive);
+float computeRangeSize_float_alter(float* oriData, size_t size, float* valueRangeSize, float* medianValue, unsigned char * signs, bool* positive, float* nearZero);
 float computeRangeSize_double_subblock(double* oriData, double* valueRangeSize, double* medianValue,
 size_t r5, size_t r4, size_t r3, size_t r2, size_t r1,
 size_t s5, size_t s4, size_t s3, size_t s2, size_t s1,

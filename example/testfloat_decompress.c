@@ -144,9 +144,8 @@ int main(int argc, char * argv[])
 
         float err = fabs(data[i] - ori_data[i]);
 
-        //memset(buffer, 0, 1024);
-        //sprintf(buffer, "i=%ld\tori:%f\tcompressed:%f\n", i, ori_data[i], data[i]);
-        //fwrite(buffer, 1, sizeof(buffer), decompressionLog);
+        //sprintf(buffer, "i=%ld\tori:%f\tcompressed:%f\trate:%f\n", i, ori_data[i], data[i], data[i] / ori_data[i]);
+        //fwrite(buffer, 1, strlen(buffer), decompressionLog);
 
         if(ori_data[i]!=0)
         {

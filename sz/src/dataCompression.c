@@ -115,11 +115,12 @@ float computeRangeSize_float(float* oriData, size_t size, float* valueRangeSize,
 	return min;
 }
 
-float computeRangeSize_float_alter(float* oriData, size_t size, float* valueRangeSize, float* medianValue, unsigned char * signs, bool* positive)
+float computeRangeSize_float_alter(float* oriData, size_t size, float* valueRangeSize, float* medianValue, unsigned char * signs, bool* positive, float* nearZero)
 {
     size_t i = 0;
     float min = oriData[0];
     float max = min;
+    *nearZero = 3.40E+38;
 
     for(i=1;i<size;i++)
     {
@@ -127,6 +128,9 @@ float computeRangeSize_float_alter(float* oriData, size_t size, float* valueRang
         if(data <0){
             signs[i] = 1;
             *positive = false;
+        }
+        if(oriData[i] != 0 && fabsf(oriData[i]) < fabsf(*nearZero)){
+            *nearZero = oriData[i];
         }
         if(min>data)
             min = data;

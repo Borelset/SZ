@@ -11,8 +11,8 @@
 
 double* g_CacheTable;
 uint32_t * g_InverseTable;
-uint64_t baseIndex;
-uint64_t topIndex;
+uint32_t baseIndex;
+uint32_t topIndex;
 int bits;
 
 int doubleGetExpo(double d);
