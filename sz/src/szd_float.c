@@ -167,6 +167,11 @@ void decompressDataSeries_float_1D(float** data, size_t dataSeriesLength, TightD
 	resiBitsLength = tdps->reqLength%8;
 	medianValue = tdps->medianValue;
 	float threshold = tdps->minLogValue;
+
+	double* precisionTable = (double*)malloc(sizeof(double) * exe_params->intvCapacity);
+	for(int i=0; i<exe_params->intvCapacity; i++){
+		precisionTable[i] = pow((1+tdps->realPrecision), i - exe_params->intvRadius);
+	}
 	
 	int type_;
 	for (i = 0; i < dataSeriesLength; i++) {
@@ -217,7 +222,7 @@ void decompressDataSeries_float_1D(float** data, size_t dataSeriesLength, TightD
 		default:
 			//predValue = 2 * (*data)[i-1] - (*data)[i-2];
 			predValue = (*data)[i-1];
-			(*data)[i] = fabs(predValue) * pow((1+tdps->realPrecision), type_ - exe_params->intvRadius) * (signs[i] ? -1:1);
+			(*data)[i] = fabs(predValue) * precisionTable[type_] * (signs[i] ? -1:1);
 			if((*data)[i] < threshold && (*data)[i] > 0){
                 (*data)[i] = 0;
 			}
@@ -230,7 +235,8 @@ void decompressDataSeries_float_1D(float** data, size_t dataSeriesLength, TightD
 	if(confparams_dec->szMode == SZ_TEMPORAL_COMPRESSION)
 		memcpy(multisteps->hist_data, (*data), dataSeriesLength*sizeof(float));
 #endif	
-	
+
+	free(precisionTable);
 	free(leadNum);
 	free(type);
 	free(signs);

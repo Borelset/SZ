@@ -397,8 +397,8 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 	memcpy(preDataBytes,vce->curBytes,4);
 	addExactData(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
 	listAdd_float(last3CmprsData, vce->data);
-	//miss++;
-    //sprintf(buffer, "rate:%f\n", vce->data / spaceFillingValue[0]);
+	miss++;
+    //sprintf(buffer, "i=%ld\tori:%f\tcompressed:%f\trate:%f\n", i, spaceFillingValue[0], vce->data, vce->data / spaceFillingValue[0]);
     //fwrite(buffer, 1, strlen(buffer), file);
 #ifdef HAVE_TIMECMPR	
 	if(confparams_cpr->szMode == SZ_TEMPORAL_COMPRESSION)
@@ -412,9 +412,9 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 	memcpy(preDataBytes,vce->curBytes,4);
 	addExactData(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
 	listAdd_float(last3CmprsData, vce->data);
-    //sprintf(buffer, "rate:%f\n", vce->data / spaceFillingValue[1]);
+	//sprintf(buffer, "i=%ld\tori:%f\tcompressed:%f\trate:%f\n", i, spaceFillingValue[1], vce->data, vce->data / spaceFillingValue[1]);
     //fwrite(buffer, 1, strlen(buffer), file);
-	//miss++;
+	miss++;
 #ifdef HAVE_TIMECMPR	
 	if(confparams_cpr->szMode == SZ_TEMPORAL_COMPRESSION)
 		decData[1] = vce->data;
@@ -442,8 +442,8 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 			type[i] = state;
 			pred = pred * precisionTable[state];
 			listAdd_float(last3CmprsData, pred);
-			//hit++;
-            //sprintf(buffer, "rate:%f\n", pred / spaceFillingValue[i]);
+			hit++;
+			//sprintf(buffer, "i=%ld\tori:%f\tcompressed:%f\trate:%f\ttype:%d\n", i, curData, pred, pred / curData, state);
             //fwrite(buffer, 1, strlen(buffer), file);
 
 			continue;
@@ -457,9 +457,9 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 		addExactData(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
 
 		listAdd_float(last3CmprsData, vce->data);
-        //sprintf(buffer, "rate:%f\n", vce->data / curData);
+		//sprintf(buffer, "i=%ld\tori:%f\tcompressed:%f\trate:%f\n", i, spaceFillingValue[i], vce->data, vce->data / spaceFillingValue[i]);
         //fwrite(buffer, 1, strlen(buffer), file);
-		//miss++;
+		miss++;
 #ifdef HAVE_TIMECMPR
 		if(confparams_cpr->szMode == SZ_TEMPORAL_COMPRESSION)
 			decData[i] = vce->data;
@@ -467,7 +467,7 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 		
 	}//end of for
 		
-	//printf("miss:%d, hit:%d\n", miss, hit);
+	printf("miss:%d, hit:%d\n", miss, hit);
     //TimeDurationEnd(&clockPointBegin);
     //struct ClockPoint clockPointbs;
     //TimeDurationStart("build struct", &clockPointbs);
