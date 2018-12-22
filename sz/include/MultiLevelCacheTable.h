@@ -7,12 +7,14 @@
 
 #include <stdint.h>
 #include <memory.h>
+#include <stdlib.h>
 #include "stdio.h"
 
 struct SubLevelTable{
     uint32_t baseIndex;
     uint32_t topIndex;
     uint32_t* table;
+    uint8_t expoIndex;
 };
 
 struct TopLevelTable{
@@ -45,11 +47,20 @@ uint32_t MLCT_GetMantiIndex(float value, int bits){
     }
 }
 
-void MultiLevelCacheTableBuild(struct TopLevelTable* topTable, float* precisionTable, int count, int quantization_intervals, float precision){
+float MLTC_RebuildFloat(uint8_t expo, uint32_t manti, int bits){
+    float result;
+    uint32_t *ptr = (uint32_t*)&result;
+    *ptr = expo;
+    (*ptr) = (*ptr) << 23;
+    (*ptr) |= (manti << (23-bits));
+    return result;
+}
+
+void MultiLevelCacheTableBuild(struct TopLevelTable* topTable, float* precisionTable, int count, float precision){
     uint8_t bits = MLCT_GetRequiredBits(precision);
     topTable->bits = bits;
     topTable->bottomBoundary = precisionTable[1]/(1+precision);
-    topTable->topBoundary = precisionTable[count-1]*(1+precision);
+    topTable->topBoundary = precisionTable[count-1]/(1-precision);
     topTable->baseIndex = MLCT_GetExpoIndex(topTable->bottomBoundary);
     topTable->topIndex = MLCT_GetExpoIndex(topTable->topBoundary);
     int subTableCount = topTable->topIndex - topTable->baseIndex + 1;
@@ -68,10 +79,11 @@ void MultiLevelCacheTableBuild(struct TopLevelTable* topTable, float* precisionT
         }
     }
 
-    for(int i=topTable->topIndex-topTable->baseIndex; i>0; i--){
+    for(int i=topTable->topIndex-topTable->baseIndex; i>=0; i--){
         struct SubLevelTable* processingSubTable = &topTable->subTables[i];
-        if(i == topTable->topIndex - topTable->baseIndex){
-            processingSubTable->topIndex = MLCT_GetMantiIndex(topTable->topBoundary, bits);
+        if(i == topTable->topIndex - topTable->baseIndex &&
+            MLCT_GetExpoIndex(topTable->topBoundary) == MLCT_GetExpoIndex(precisionTable[count-1])){
+            processingSubTable->topIndex = MLCT_GetMantiIndex(topTable->topBoundary, bits) - 1;
         }else{
             uint32_t maxIndex = 0;
             for(int j=0; j<bits; j++){
@@ -79,22 +91,60 @@ void MultiLevelCacheTableBuild(struct TopLevelTable* topTable, float* precisionT
             }
             processingSubTable->topIndex = maxIndex;
         }
-        if(i == 1){
+        if(i == 0 && MLCT_GetExpoIndex(topTable->topBoundary) == MLCT_GetExpoIndex(precisionTable[count-1])){
             processingSubTable->baseIndex = MLCT_GetMantiIndex(topTable->bottomBoundary, bits)+1;
         }else{
             processingSubTable->baseIndex = 0;
         }
 
-        int subTableLength = processingSubTable->topIndex - processingSubTable->baseIndex + 1;
+        int subTableLength = processingSubTable->topIndex - processingSubTable-> baseIndex+ 1;
         processingSubTable->table = (uint32_t*)malloc(sizeof(uint32_t) * subTableLength);
         memset(processingSubTable->table, 0, sizeof(uint32_t) * subTableLength);
+        processingSubTable->expoIndex = topTable->baseIndex + i;
     }
 
-    uint32_t lastIndexInExpoRange = count-1;
+    uint32_t index = 1;
+    for(uint8_t i = 0; i<=topTable->topIndex-topTable->baseIndex; i++){
+        struct SubLevelTable* processingSubTable = &topTable->subTables[i];
+        uint8_t expoIndex = i+topTable->baseIndex;
+        for(uint32_t j = 0; j<=processingSubTable->topIndex - processingSubTable->baseIndex; j++){
+            uint32_t mantiIndex = j+processingSubTable->baseIndex;
+            float sample = MLTC_RebuildFloat(expoIndex, mantiIndex, topTable->bits);
+            float bottomBoundary = precisionTable[index] / (1+precision);
+            float topBoundary = precisionTable[index] / (1-precision);
+            if(sample < topBoundary && sample > bottomBoundary){
+                processingSubTable->table[j] = index;
+            }else{
+                float newPrecision = precisionTable[index];
+                index++;
+                processingSubTable->table[j] = index;
+                if(j)
+                    processingSubTable->table[j-1] = index;
+                else{
+                    struct SubLevelTable* pastSubTable = &topTable->subTables[i-1];
+                    pastSubTable->table[pastSubTable->topIndex - pastSubTable->baseIndex] = index;
+                }
+            }
+        }
+        if(i == topTable->topIndex - topTable->baseIndex){
+            uint32_t j = processingSubTable->topIndex - processingSubTable->baseIndex + 1;
+            uint32_t mantiIndex = j + processingSubTable->baseIndex;
+            float sample = MLTC_RebuildFloat(expoIndex, mantiIndex, topTable->bits);
+            float bottomBoundary = precisionTable[index] / (1+precision);
+            float topBoundary = precisionTable[index] / (1-precision);
+            if(sample > topBoundary || sample < bottomBoundary){
+                index++;
+                processingSubTable->table[j-1] = index;
+            }
+        }
+    }
+
+    /*
+    long lastIndexInExpoRange = count-1;
     bool trigger = false;
     float preRange = 0.0;
     uint32_t preIndex = 0;
-    for(int i=topTable->topIndex-topTable->baseIndex; i>0; i--){
+    for(int i=topTable->topIndex-topTable->baseIndex; i>=0; i--){
         struct SubLevelTable* processingSubTable = &topTable->subTables[i];
         if(trigger){
             uint32_t bound = MLCT_GetMantiIndex(preRange, bits);
@@ -107,10 +157,11 @@ void MultiLevelCacheTableBuild(struct TopLevelTable* topTable, float* precisionT
             }
             trigger = false;
         }
-        uint32_t firstIndexInExpoRange = expoBoundary[i];
+        long firstIndexInExpoRange = expoBoundary[i];
         uint8_t expoInRange = MLCT_GetExpoIndex(precisionTable[firstIndexInExpoRange]);
         for(int j=lastIndexInExpoRange; j>=firstIndexInExpoRange; j--){
-            uint32_t rangeTop = MLCT_GetMantiIndex(precisionTable[j]*(1+precision), bits);
+            float test = precisionTable[j];
+            uint32_t rangeTop = MLCT_GetMantiIndex(precisionTable[j]*(1+precision), bits) - 1;
             uint32_t rangeBottom;
             if(j == firstIndexInExpoRange){
                 preRange = precisionTable[j]/(1+precision);
@@ -119,10 +170,10 @@ void MultiLevelCacheTableBuild(struct TopLevelTable* topTable, float* precisionT
                     preIndex = firstIndexInExpoRange;
                     rangeBottom = 0;
                 }else{
-                    rangeBottom= MLCT_GetMantiIndex(precisionTable[j]/(1+precision), bits);
+                    rangeBottom= MLCT_GetMantiIndex(precisionTable[j]/(1+precision), bits) + 1;
                 }
             }else{
-                rangeBottom= MLCT_GetMantiIndex(precisionTable[j]/(1+precision), bits);
+                rangeBottom= MLCT_GetMantiIndex(precisionTable[j]/(1+precision), bits) + 1;
             }
             for(int k = rangeBottom; k<=rangeTop; k++){
                 if( k <= processingSubTable->topIndex && k >= processingSubTable->baseIndex)
@@ -131,18 +182,26 @@ void MultiLevelCacheTableBuild(struct TopLevelTable* topTable, float* precisionT
         }
         lastIndexInExpoRange = firstIndexInExpoRange-1;
     }
+     */
 }
 
 uint32_t MultiLevelCacheTableGetIndex(float value, struct TopLevelTable* topLevelTable){
-    if(value <= topLevelTable->topBoundary && value >= topLevelTable->bottomBoundary){
-        uint8_t expoIndex = MLCT_GetExpoIndex(value);
+    uint8_t expoIndex = MLCT_GetExpoIndex(value);
+    if(expoIndex <= topLevelTable->topIndex && expoIndex >= topLevelTable->baseIndex){
         struct SubLevelTable* subLevelTable = &topLevelTable->subTables[expoIndex-topLevelTable->baseIndex];
         uint32_t mantiIndex = MLCT_GetMantiIndex(value, topLevelTable->bits);
-        return subLevelTable->table[mantiIndex - subLevelTable->baseIndex];
-    }else{
-        return 0;
+        float rebuild = MLTC_RebuildFloat(expoIndex, mantiIndex, topLevelTable->bits);
+        if(mantiIndex >= subLevelTable->baseIndex && mantiIndex <= subLevelTable->topIndex)
+            return subLevelTable->table[mantiIndex - subLevelTable->baseIndex];
     }
+    return 0;
+}
 
+void MultiLevelCacheTableFree(struct TopLevelTable* table){
+    for(int i=0; i<table->topIndex - table->baseIndex + 1; i++){
+        free(table->subTables[i].table);
+    }
+    free(table->subTables);
 }
 
 #endif //SZ_MULTILEVELCACHETABLE_H

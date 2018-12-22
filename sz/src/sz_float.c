@@ -29,6 +29,7 @@
 #include "CacheTable.h"
 #include "TimeDuration.h"
 #include "math.h"
+#include "MultiLevelCacheTable.h"
 
 unsigned char* SZ_skip_compress_float(float* data, size_t dataLength, size_t* outSize)
 {
@@ -344,13 +345,15 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 		quantization_intervals = exe_params->intvCapacity;
 	updateQuantizationInfo(quantization_intervals);
 
-    double* precisionTable = (double*)malloc(sizeof(double)*quantization_intervals);
+	float* precisionTable = (float*)malloc(sizeof(float)*quantization_intervals);
 
     for(int i=0; i<quantization_intervals; i++){
         precisionTable[i] = pow((1+realPrecision), i - exe_params->intvRadius);
     }
-    double smallest_precision = precisionTable[0], largest_precision = precisionTable[quantization_intervals-1];
-    CacheTableBuild(precisionTable, quantization_intervals, smallest_precision, largest_precision, realPrecision, quantization_intervals);
+    float smallest_precision = precisionTable[0], largest_precision = precisionTable[quantization_intervals-1];
+    //CacheTableBuild(precisionTable, quantization_intervals, smallest_precision, largest_precision, realPrecision, quantization_intervals);
+    struct TopLevelTable levelTable;
+    MultiLevelCacheTableBuild(&levelTable, precisionTable, quantization_intervals, realPrecision);
 
 	size_t i;
 	int reqLength;
@@ -386,9 +389,6 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 	//TimeDurationEnd(&clockPointBuild);
 	//struct ClockPoint clockPointBegin;
 	//TimeDurationStart("begin", &clockPointBegin);
-
-    //FILE* file = fopen("compressLog", "w");
-    //char buffer[1024];
 				
 	//add the first data	
 	type[0] = 0;
@@ -398,8 +398,6 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 	addExactData(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
 	listAdd_float(last3CmprsData, vce->data);
 	miss++;
-    //sprintf(buffer, "i=%ld\tori:%f\tcompressed:%f\trate:%f\n", i, spaceFillingValue[0], vce->data, vce->data / spaceFillingValue[0]);
-    //fwrite(buffer, 1, strlen(buffer), file);
 #ifdef HAVE_TIMECMPR	
 	if(confparams_cpr->szMode == SZ_TEMPORAL_COMPRESSION)
 		decData[0] = vce->data;
@@ -412,8 +410,6 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 	memcpy(preDataBytes,vce->curBytes,4);
 	addExactData(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
 	listAdd_float(last3CmprsData, vce->data);
-	//sprintf(buffer, "i=%ld\tori:%f\tcompressed:%f\trate:%f\n", i, spaceFillingValue[1], vce->data, vce->data / spaceFillingValue[1]);
-    //fwrite(buffer, 1, strlen(buffer), file);
 	miss++;
 #ifdef HAVE_TIMECMPR	
 	if(confparams_cpr->szMode == SZ_TEMPORAL_COMPRESSION)
@@ -435,16 +431,14 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 		pred = last3CmprsData[0];
 		//predAbsErr = fabs(curData - pred);
 		predRelErrRatio = fabsf(curData / pred);
-		uint32_t index = CacheTableGetIndex(predRelErrRatio, bits);
-		if(index <= topIndex && index > baseIndex)
+		state = MultiLevelCacheTableGetIndex(predRelErrRatio, &levelTable);
+		if(state)
 		{
-			state = g_InverseTable[index-baseIndex];
 			type[i] = state;
+			float ratio = precisionTable[state];
 			pred = pred * precisionTable[state];
 			listAdd_float(last3CmprsData, pred);
 			hit++;
-			//sprintf(buffer, "i=%ld\tori:%f\tcompressed:%f\trate:%f\ttype:%d\n", i, curData, pred, pred / curData, state);
-            //fwrite(buffer, 1, strlen(buffer), file);
 
 			continue;
 		}
@@ -457,8 +451,6 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 		addExactData(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
 
 		listAdd_float(last3CmprsData, vce->data);
-		//sprintf(buffer, "i=%ld\tori:%f\tcompressed:%f\trate:%f\n", i, spaceFillingValue[i], vce->data, vce->data / spaceFillingValue[i]);
-        //fwrite(buffer, 1, strlen(buffer), file);
 		miss++;
 #ifdef HAVE_TIMECMPR
 		if(confparams_cpr->szMode == SZ_TEMPORAL_COMPRESSION)

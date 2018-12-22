@@ -42,7 +42,7 @@ if(TAGS)
 		)
 endif()
 
-#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
 
 include_directories (
 	${CMAKE_CURRENT_SOURCE_DIR}/sz/include 
@@ -64,3 +64,5 @@ add_subdirectory (zstd)
 add_subdirectory (sz)
 add_subdirectory (example)
 #add_subdirectory (test)
+
+add_executable(test1 MultiLevelCacheTableTest.cpp)

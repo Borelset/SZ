@@ -134,18 +134,12 @@ int main(int argc, char * argv[])
    
     double maxpw_relerr = 0;
 
-    //FILE* decompressionLog = fopen("decompressionLog", "w");
-    //char buffer[1024];
-
     for (i = 0; i < nbEle; i++)
     {
         if (Max < ori_data[i]) Max = ori_data[i];
         if (Min > ori_data[i]) Min = ori_data[i];
 
         float err = fabs(data[i] - ori_data[i]);
-
-        //sprintf(buffer, "i=%ld\tori:%f\tcompressed:%f\trate:%f\n", i, ori_data[i], data[i], data[i] / ori_data[i]);
-        //fwrite(buffer, 1, strlen(buffer), decompressionLog);
 
         if(ori_data[i]!=0)
         {
@@ -155,6 +149,7 @@ int main(int argc, char * argv[])
                 relerr = err;
             if(maxpw_relerr<relerr)
                 maxpw_relerr = relerr;
+
         }
 
         if (diffMax < err)
