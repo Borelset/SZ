@@ -170,7 +170,7 @@ void decompressDataSeries_float_1D(float** data, size_t dataSeriesLength, TightD
 
 	float* precisionTable = (float*)malloc(sizeof(float) * exe_params->intvCapacity);
 	for(int i=0; i<exe_params->intvCapacity; i++){
-		precisionTable[i] = pow((1+tdps->realPrecision), i - exe_params->intvRadius);
+		precisionTable[i] = pow((1+tdps->realPrecision), (i - exe_params->intvRadius)*2);
 	}
 
 	int type_;

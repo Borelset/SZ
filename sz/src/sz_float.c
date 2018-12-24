@@ -29,7 +29,8 @@
 #include "CacheTable.h"
 #include "TimeDuration.h"
 #include "math.h"
-#include "MultiLevelCacheTable.h"
+//#include "MultiLevelCacheTable.h"
+#include "MultiLevelCacheTableWideInterval.h"
 
 unsigned char* SZ_skip_compress_float(float* data, size_t dataLength, size_t* outSize)
 {
@@ -344,6 +345,8 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 	else
 		quantization_intervals = exe_params->intvCapacity;
 	updateQuantizationInfo(quantization_intervals);
+	
+	/*
 
 	float* precisionTable = (float*)malloc(sizeof(float)*quantization_intervals);
 
@@ -354,6 +357,15 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
     //CacheTableBuild(precisionTable, quantization_intervals, smallest_precision, largest_precision, realPrecision, quantization_intervals);
     struct TopLevelTable levelTable;
     MultiLevelCacheTableBuild(&levelTable, precisionTable, quantization_intervals, realPrecision);
+    */
+	
+	double* precisionTable = (double*)malloc(sizeof(double) * quantization_intervals);
+    for(int i=0; i<quantization_intervals; i++){
+        precisionTable[i] = pow((1+realPrecision), (i - exe_params->intvRadius)*2);
+    }
+    float smallest_precision = precisionTable[0], largest_precision = precisionTable[quantization_intervals-1];
+    struct TopLevelTableWideInterval levelTable;
+    MultiLevelCacheTableWideIntervalBuild(&levelTable, precisionTable, quantization_intervals, realPrecision);
 
 	size_t i;
 	int reqLength;
@@ -422,7 +434,8 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 	//float predAbsErr;
 	//checkRadius = (exe_params->intvCapacity-1)*realPrecision;
 	//double interval = 2*realPrecision;
-	float predRelErrRatio;
+	//float predRelErrRatio;
+    double predRelErrRatio;
 	
 	for(i=2;i<dataLength;i++)
 	{	
@@ -431,7 +444,8 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 		pred = last3CmprsData[0];
 		//predAbsErr = fabs(curData - pred);
 		predRelErrRatio = fabsf(curData / pred);
-		state = MultiLevelCacheTableGetIndex(predRelErrRatio, &levelTable);
+		//state = MultiLevelCacheTableGetIndex(predRelErrRatio, &levelTable);
+		state = MultiLevelCacheTableWideIntervalGetIndex(predRelErrRatio, &levelTable);
 		if(state)
 		{
 			type[i] = state;
