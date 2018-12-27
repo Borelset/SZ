@@ -52,7 +52,7 @@ double MLTCWI_RebuildDouble(uint16_t expo, uint64_t manti, int bits){
     uint64_t *ptr = (uint64_t*)&result;
     *ptr = expo;
     (*ptr) = (*ptr) << 52;
-    (*ptr) |= (manti << (52-bits));
+    (*ptr) += (manti << (52-bits));
     return result;
 }
 
