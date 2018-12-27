@@ -1,5 +1,5 @@
 //
-// Created by xdnzx on 2018/12/17.
+// Created by borelset on 2018/12/17.
 //
 
 #ifndef SZ_MASTER_TIMEDURATION_H
