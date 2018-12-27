@@ -112,6 +112,7 @@ int SZ_ReadConf(const char* sz_cfgFile) {
 		confparams_cpr->psnr = 90;
 		confparams_cpr->absErrBound = 1E-4;
 		confparams_cpr->relBoundRatio = 1E-4;
+		confparams_cpr->plus_bits = 0;
 		
 		confparams_cpr->pw_relBoundRatio = 1E-3;
 		confparams_cpr->segment_size = 36;
@@ -328,6 +329,7 @@ int SZ_ReadConf(const char* sz_cfgFile) {
 		confparams_cpr->psnr = (double)iniparser_getdouble(ini, "PARAMETER:psnr", 0);
 		confparams_cpr->pw_relBoundRatio = (double)iniparser_getdouble(ini, "PARAMETER:pw_relBoundRatio", 0);
 		confparams_cpr->segment_size = (int)iniparser_getint(ini, "PARAMETER:segment_size", 0);
+		confparams_cpr->plus_bits = (int)iniparser_getint(ini, "PARAMETER:plus_bits", 0);
 		
 		modeBuf = iniparser_getstring(ini, "PARAMETER:pwr_type", "MIN");
 		

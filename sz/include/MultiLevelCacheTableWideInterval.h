@@ -56,8 +56,8 @@ double MLTCWI_RebuildDouble(uint16_t expo, uint64_t manti, int bits){
     return result;
 }
 
-void MultiLevelCacheTableWideIntervalBuild(struct TopLevelTableWideInterval* topTable, double* precisionTable, int count, double precision){
-    uint16_t bits = MLCTWI_GetRequiredBits(precision);
+void MultiLevelCacheTableWideIntervalBuild(struct TopLevelTableWideInterval* topTable, double* precisionTable, int count, double precision, int plus_bits){
+    uint16_t bits = MLCTWI_GetRequiredBits(precision) + plus_bits;
     topTable->bits = bits;
     topTable->bottomBoundary = precisionTable[1]/(1+precision);
     topTable->topBoundary = precisionTable[count-1]/(1-precision);
@@ -91,7 +91,7 @@ void MultiLevelCacheTableWideIntervalBuild(struct TopLevelTableWideInterval* top
             }
             processingSubTable->topIndex = maxIndex;
         }
-        if(i == 0 && MLCTWI_GetExpoIndex(topTable->topBoundary) == MLCTWI_GetExpoIndex(precisionTable[count-1])){
+        if(i == 0 && MLCTWI_GetExpoIndex(topTable->bottomBoundary) == MLCTWI_GetExpoIndex(precisionTable[0])){
             processingSubTable->baseIndex = MLCTWI_GetMantiIndex(topTable->bottomBoundary, bits);
         }else{
             processingSubTable->baseIndex = 0;
@@ -105,6 +105,7 @@ void MultiLevelCacheTableWideIntervalBuild(struct TopLevelTableWideInterval* top
 
 
     uint32_t index = 0;
+    bool flag = false;
     for(uint16_t i = 0; i<=topTable->topIndex-topTable->baseIndex; i++){
         struct SubLevelTableWideInterval* processingSubTable = &topTable->subTables[i];
         uint16_t expoIndex = i+topTable->baseIndex;
@@ -115,9 +116,14 @@ void MultiLevelCacheTableWideIntervalBuild(struct TopLevelTableWideInterval* top
             double topBoundary = precisionTable[index] / (1-precision);
             if(sample < topBoundary && sample > bottomBoundary){
                 processingSubTable->table[j] = index;
+                flag = true;
             }else{
-                index++;
-                processingSubTable->table[j] = index;
+                if(flag && index < count-1){
+                    index++;
+                    processingSubTable->table[j] = index;
+                }else{
+                    processingSubTable->table[j] = 0;
+                }
             }
         }
     }

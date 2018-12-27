@@ -91,7 +91,7 @@ void MultiLevelCacheTableBuild(struct TopLevelTable* topTable, float* precisionT
             }
             processingSubTable->topIndex = maxIndex;
         }
-        if(i == 0 && MLCT_GetExpoIndex(topTable->topBoundary) == MLCT_GetExpoIndex(precisionTable[count-1])){
+        if(i == 0 && MLCT_GetExpoIndex(topTable->bottomBoundary) == MLCT_GetExpoIndex(precisionTable[0])){
             processingSubTable->baseIndex = MLCT_GetMantiIndex(topTable->bottomBoundary, bits)+1;
         }else{
             processingSubTable->baseIndex = 0;

@@ -365,7 +365,7 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
     }
     float smallest_precision = precisionTable[0], largest_precision = precisionTable[quantization_intervals-1];
     struct TopLevelTableWideInterval levelTable;
-    MultiLevelCacheTableWideIntervalBuild(&levelTable, precisionTable, quantization_intervals, realPrecision);
+    MultiLevelCacheTableWideIntervalBuild(&levelTable, precisionTable, quantization_intervals, realPrecision, confparams_cpr->plus_bits);
 
 	size_t i;
 	int reqLength;
@@ -3871,7 +3871,7 @@ unsigned int optimize_intervals_float_1D_opt(float *oriData, size_t dataLength, 
 	size_t totalSampleSize = 0;//dataLength/confparams_cpr->sampleDistance;
 
 	float * data_pos = oriData + 2;
-	float divider = log2(1+realPrecision);
+	float divider = log2(1+realPrecision)*2;
 	int tempIndex = 0;
 	while(data_pos - oriData < dataLength){
 	    tempIndex++;

@@ -168,13 +168,15 @@ void decompressDataSeries_float_1D(float** data, size_t dataSeriesLength, TightD
 	medianValue = tdps->medianValue;
 	float threshold = tdps->minLogValue;
 
-	float* precisionTable = (float*)malloc(sizeof(float) * exe_params->intvCapacity);
+	double* precisionTable = (double*)malloc(sizeof(double) * exe_params->intvCapacity);
 	for(int i=0; i<exe_params->intvCapacity; i++){
 		precisionTable[i] = pow((1+tdps->realPrecision), (i - exe_params->intvRadius)*2);
 	}
+	double test = precisionTable[exe_params->intvCapacity-1];
+
 
 	int type_;
-	float testratio;
+	double testratio;
 	for (i = 0; i < dataSeriesLength; i++) {
 		type_ = type[i];
 		switch (type_) {

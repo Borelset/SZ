@@ -1882,7 +1882,7 @@ void SZ_compress_args_float_NoCkRngeNoGzip_1D_pwr_pre_log_alter(unsigned char** 
 		}
 	}
 	 */
-	float multiplier = pow((1+pwrErrRatio), -2.0001);
+	float multiplier = pow((1+pwrErrRatio), -3.0001);
 	for(int i=0; i<dataLength; i++){
 		if(oriData[i] == 0){
 			oriData[i] = nearZero * multiplier;
@@ -1895,7 +1895,7 @@ void SZ_compress_args_float_NoCkRngeNoGzip_1D_pwr_pre_log_alter(unsigned char** 
 	//TimeDurationEnd(&clockPointPW);
 	//struct ClockPoint clockPointSS;
 	//TimeDurationStart("struct into stream", &clockPointSS);
-	tdps->minLogValue = nearZero / (1+pwrErrRatio);
+	tdps->minLogValue = nearZero / ((1+pwrErrRatio)*(1+pwrErrRatio));
 	//free(log_data);
 	if(!(*positive)){
 		unsigned char * comp_signs;

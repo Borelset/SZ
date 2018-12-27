@@ -260,6 +260,8 @@ typedef struct sz_params
 	
 	int snapshotCmprStep; //perform single-snapshot-based compression if time_step == snapshotCmprStep
 	int predictionMode;
+
+	int plus_bits;
 	
 	int randomAccess;
 } sz_params;
