@@ -379,13 +379,13 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 	float* spaceFillingValue = oriData; //
 	
 	DynamicIntArray *exactLeadNumArray;
-	new_DIA(&exactLeadNumArray, dataLength/2/8);
+	new_DIA(&exactLeadNumArray, dataLength/2);
 	
 	DynamicByteArray *exactMidByteArray;
 	new_DBA(&exactMidByteArray, dataLength/2);
 	
 	DynamicIntArray *resiBitArray;
-	new_DIA(&resiBitArray, DynArrayInitLen);
+	new_DIA(&resiBitArray, dataLength/2);
 	
 	unsigned char preDataBytes[4];
 	intToBytes_bigEndian(preDataBytes, 0);
@@ -2014,7 +2014,6 @@ void computeReqLength_float(double realPrecision, short radExpo, int* reqLength,
 	if(*reqLength>32)
 	{	
 		*reqLength = 32;
-		*medianValue = 0;
 	}			
 }
 
