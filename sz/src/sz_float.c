@@ -2014,7 +2014,6 @@ void computeReqLength_float(double realPrecision, short radExpo, int* reqLength,
 	if(*reqLength>32)
 	{	
 		*reqLength = 32;
-		*medianValue = 0;
 	}			
 }
 
