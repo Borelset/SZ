@@ -224,8 +224,8 @@ void updateLossyCompElement_Float(unsigned char* curBytes, unsigned char* preByt
 		int reqBytesLength, int resiBitsLength,  LossyCompressionElement *lce)
 {
 	int resiIndex, intMidBytes_Length = 0;
-	int leadingNum = compIdenticalLeadingBytesCount_float(preBytes, curBytes); //in fact, float is enough for both single-precision and double-precisiond ata.
-	int fromByteIndex = leadingNum;
+	int leadingNum = 1;//compIdenticalLeadingBytesCount_float(preBytes, curBytes); //in fact, float is enough for both single-precision and double-precisiond ata.
+	int fromByteIndex = 1;
 	int toByteIndex = reqBytesLength; //later on: should use "< toByteIndex" to tarverse....
 	if(fromByteIndex < toByteIndex)
 	{
@@ -239,7 +239,32 @@ void updateLossyCompElement_Float(unsigned char* curBytes, unsigned char* preByt
 		if(resiIndex < 8)
 			resiBits = (curBytes[resiIndex] & 0xFF) >> (8-resiBitsLength);
 	}
-	lce->leadingZeroBytes = leadingNum;
+	lce->leadingZeroBytes = curBytes[0];
+	lce->integerMidBytes_Length = intMidBytes_Length;
+	lce->resMidBitsLength = resiBitsLength;
+	lce->residualMidBits = resiBits;
+}
+
+void updateLossyCompElement_Float_alter(unsigned char* curBytes, unsigned char* preBytes,
+								  int reqBytesLength, int resiBitsLength,  LossyCompressionElement *lce, int min)
+{
+	int resiIndex, intMidBytes_Length = 0;
+	int leadingNum = 1;//compIdenticalLeadingBytesCount_float(preBytes, curBytes); //in fact, float is enough for both single-precision and double-precisiond ata.
+	int fromByteIndex = 1;
+	int toByteIndex = reqBytesLength; //later on: should use "< toByteIndex" to tarverse....
+	if(fromByteIndex < toByteIndex)
+	{
+		intMidBytes_Length = reqBytesLength - leadingNum;
+		memcpy(lce->integerMidBytes, &(curBytes[fromByteIndex]), intMidBytes_Length);
+	}
+	int resiBits = 0;
+	if(resiBitsLength!=0)
+	{
+		resiIndex = reqBytesLength;
+		if(resiIndex < 8)
+			resiBits = (curBytes[resiIndex] & 0xFF) >> (8-resiBitsLength);
+	}
+	lce->leadingZeroBytes = (curBytes[0] & 0x7f)-min;
 	lce->integerMidBytes_Length = intMidBytes_Length;
 	lce->resMidBitsLength = resiBitsLength;
 	lce->residualMidBits = resiBits;

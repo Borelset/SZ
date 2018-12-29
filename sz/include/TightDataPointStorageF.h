@@ -74,6 +74,16 @@ void new_TightDataPointStorageF(TightDataPointStorageF **self,
 		double realPrecision, float medianValue, char reqLength, unsigned int intervals, 
 		unsigned char* pwrErrBoundBytes, size_t pwrErrBoundBytes_size, unsigned char radExpo);
 
+void new_TightDataPointStorageF_alter(TightDataPointStorageF **this,
+									  size_t dataSeriesLength, size_t exactDataNum,
+									  int* type, unsigned char* exactMidBytes, size_t exactMidBytes_size,
+									  int* leadNumIntArray,  //leadNumIntArray contains readable numbers....
+									  int minInLeader, int maxInLeader,
+									  unsigned char* resiMidBits, size_t resiMidBits_size,
+									  unsigned char resiBitLength,
+									  double realPrecision, float medianValue, char reqLength, unsigned int intervals,
+									  unsigned char* pwrErrBoundBytes, size_t pwrErrBoundBytes_size, unsigned char radExpo);
+
 /**
  * This function is designed for first-version of the point-wise relative error bound (developed by Sheng Di for TPDS18 paper)
  * 

@@ -73,6 +73,9 @@ int compIdenticalLeadingBytesCount_float(unsigned char* preBytes, unsigned char*
 void addExactData(DynamicByteArray *exactMidByteArray, DynamicIntArray *exactLeadNumArray, 
 		DynamicIntArray *resiBitArray, LossyCompressionElement *lce);
 
+void addExactData_alter(DynamicByteArray *exactMidByteArray, DynamicInt32Array *exactLeadNumArray,
+                  DynamicIntArray *resiBitArray, LossyCompressionElement *lce);
+
 int getPredictionCoefficients(int layers, int dimension, int **coeff_array, int *status);
 
 int computeBlockEdgeSize_3D(int segmentSize);

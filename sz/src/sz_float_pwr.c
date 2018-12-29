@@ -1846,6 +1846,11 @@ void SZ_compress_args_float_NoCkRngeNoGzip_1D_pwr_pre_log(unsigned char** newByt
 	free_TightDataPointStorageF(tdps);
 }
 
+int getExpo(float value){
+    uint32_t* ptr = (uint32_t*)&value;
+    return (*ptr) << 1 >> 25;
+}
+
 void SZ_compress_args_float_NoCkRngeNoGzip_1D_pwr_pre_log_alter(unsigned char** newByteData, float *oriData, double pwrErrRatio, size_t dataLength, size_t *outSize, float valueRangeSize, float medianValue_f,
 																unsigned char* signs, bool* positive, float min, float max, float nearZero){
 
@@ -1882,16 +1887,24 @@ void SZ_compress_args_float_NoCkRngeNoGzip_1D_pwr_pre_log_alter(unsigned char** 
 		}
 	}
 	 */
+	int maxIndex = -127;
+	int minIndex = 128;
+
 	float multiplier = pow((1+pwrErrRatio), -3.0001);
 	for(int i=0; i<dataLength; i++){
 		if(oriData[i] == 0){
 			oriData[i] = nearZero * multiplier;
 		}
+		int index = getExpo(oriData[i]);
+		if(index < minIndex)
+			minIndex = index;
+		if(index > maxIndex)
+			maxIndex = index;
 	}
 
 	//struct ClockPoint clockPointPW;
 	//TimeDurationStart("point-wise", &clockPointPW);
-	TightDataPointStorageF* tdps = SZ_compress_float_1D_MDQ(oriData, dataLength, pwrErrRatio, valueRangeSize, medianValue_f);
+	TightDataPointStorageF* tdps = SZ_compress_float_1D_MDQ_alter(oriData, dataLength, pwrErrRatio, valueRangeSize, medianValue_f, minIndex, maxIndex);
 	//TimeDurationEnd(&clockPointPW);
 	//struct ClockPoint clockPointSS;
 	//TimeDurationStart("struct into stream", &clockPointSS);

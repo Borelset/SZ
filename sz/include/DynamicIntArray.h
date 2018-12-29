@@ -28,6 +28,20 @@ void free_DIA(DynamicIntArray *dia);
 int getDIA_Data(DynamicIntArray *dia, size_t pos);
 void addDIA_Data(DynamicIntArray *dia, int value);
 
+typedef struct DynamicInt32Array
+{
+	int* array; //char* (one byte) is enough, don't have to be int*
+	size_t size;
+	size_t capacity;
+} DynamicInt32Array;
+
+void new_DI32A(DynamicInt32Array **dia, size_t cap);
+void convertDI32AtoInts(DynamicInt32Array *dia, int **data);
+void free_DI32A(DynamicInt32Array *dia);
+int getDI32A_Data(DynamicInt32Array *dia, size_t pos);
+void addDI32A_Data(DynamicInt32Array *dia, int value);
+
+
 #ifdef __cplusplus
 }
 #endif

@@ -514,6 +514,25 @@ void addExactData(DynamicByteArray *exactMidByteArray, DynamicIntArray *exactLea
 	}
 }
 
+void addExactData_alter(DynamicByteArray *exactMidByteArray, DynamicInt32Array *exactLeadNumArray,
+                  DynamicIntArray *resiBitArray, LossyCompressionElement *lce)
+{
+    int i;
+    int leadByteLength = lce->leadingZeroBytes;
+    addDI32A_Data(exactLeadNumArray, leadByteLength);
+    unsigned char* intMidBytes = lce->integerMidBytes;
+    int integerMidBytesLength = lce->integerMidBytes_Length;
+    int resMidBitsLength = lce->resMidBitsLength;
+    if(intMidBytes!=NULL||resMidBitsLength!=0)
+    {
+        if(intMidBytes!=NULL)
+            for(i = 0;i<integerMidBytesLength;i++)
+                addDBA_Data(exactMidByteArray, intMidBytes[i]);
+        if(resMidBitsLength!=0)
+            addDIA_Data(resiBitArray, lce->residualMidBits);
+    }
+}
+
 /**
  * @deprecated
  * @return: the length of the coefficient array.

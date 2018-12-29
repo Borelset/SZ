@@ -378,8 +378,8 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 		
 	float* spaceFillingValue = oriData; //
 	
-	DynamicIntArray *exactLeadNumArray;
-	new_DIA(&exactLeadNumArray, dataLength/2);
+	DynamicInt32Array *exactLeadNumArray;
+	new_DI32A(&exactLeadNumArray, dataLength/2);
 	
 	DynamicByteArray *exactMidByteArray;
 	new_DBA(&exactMidByteArray, dataLength/2);
@@ -395,6 +395,8 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 	float last3CmprsData[3] = {0};
 
 	int miss=0, hit=0;
+	int minIndex = 128, maxIndex = -127;
+	int expoIndex = 0;
 
 	FloatValueCompressElement *vce = (FloatValueCompressElement*)malloc(sizeof(FloatValueCompressElement));
 	LossyCompressionElement *lce = (LossyCompressionElement*)malloc(sizeof(LossyCompressionElement));
@@ -406,8 +408,8 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 	type[0] = 0;
 	compressSingleFloatValue(vce, spaceFillingValue[0], realPrecision, medianValue, reqLength, reqBytesLength, resiBitsLength);
 	updateLossyCompElement_Float(vce->curBytes, preDataBytes, reqBytesLength, resiBitsLength, lce);
-	memcpy(preDataBytes,vce->curBytes,4);
-	addExactData(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
+	//memcpy(preDataBytes,vce->curBytes,4);
+	addExactData_alter(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
 	listAdd_float(last3CmprsData, vce->data);
 	miss++;
 #ifdef HAVE_TIMECMPR	
@@ -419,8 +421,8 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 	type[1] = 0;
 	compressSingleFloatValue(vce, spaceFillingValue[1], realPrecision, medianValue, reqLength, reqBytesLength, resiBitsLength);
 	updateLossyCompElement_Float(vce->curBytes, preDataBytes, reqBytesLength, resiBitsLength, lce);
-	memcpy(preDataBytes,vce->curBytes,4);
-	addExactData(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
+	//memcpy(preDataBytes,vce->curBytes,4);
+    addExactData_alter(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
 	listAdd_float(last3CmprsData, vce->data);
 	miss++;
 #ifdef HAVE_TIMECMPR	
@@ -461,8 +463,8 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 		type[i] = 0;		
 		compressSingleFloatValue(vce, curData, realPrecision, medianValue, reqLength, reqBytesLength, resiBitsLength);
 		updateLossyCompElement_Float(vce->curBytes, preDataBytes, reqBytesLength, resiBitsLength, lce);
-		memcpy(preDataBytes,vce->curBytes,4);
-		addExactData(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
+		//memcpy(preDataBytes,vce->curBytes,4);
+        addExactData_alter(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
 
 		listAdd_float(last3CmprsData, vce->data);
 		miss++;
@@ -483,9 +485,9 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 	
 	TightDataPointStorageF* tdps;
 			
-	new_TightDataPointStorageF(&tdps, dataLength, exactDataNum, 
+	new_TightDataPointStorageF_alter(&tdps, dataLength, exactDataNum,
 			type, exactMidByteArray->array, exactMidByteArray->size,  
-			exactLeadNumArray->array,  
+			exactLeadNumArray->array,  minIndex, maxIndex,
 			resiBitArray->array, resiBitArray->size, 
 			resiBitsLength,
 			realPrecision, medianValue, (char)reqLength, quantization_intervals, NULL, 0, 0);
@@ -502,6 +504,185 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 	free(type);	
 	free(vce);
 	free(lce);	
+	free(exactMidByteArray); //exactMidByteArray->array has been released in free_TightDataPointStorageF(tdps);
+	//TimeDurationEnd(&clockPointbs);
+	return tdps;
+}
+
+TightDataPointStorageF* SZ_compress_float_1D_MDQ_alter(float *oriData,
+												 size_t dataLength, double realPrecision, float valueRangeSize, float medianValue_f, int min, int max)
+{
+#ifdef HAVE_TIMECMPR
+	float* decData = NULL;
+	if(confparams_cpr->szMode == SZ_TEMPORAL_COMPRESSION)
+		decData = (float*)(multisteps->hist_data);
+#endif
+
+	//struct ClockPoint clockPointBuild;
+	//TimeDurationStart("build", &clockPointBuild);
+	unsigned int quantization_intervals;
+	if(exe_params->optQuantMode==1)
+		quantization_intervals = optimize_intervals_float_1D_opt(oriData, dataLength, realPrecision);
+	else
+		quantization_intervals = exe_params->intvCapacity;
+	updateQuantizationInfo(quantization_intervals);
+
+	/*
+
+	float* precisionTable = (float*)malloc(sizeof(float)*quantization_intervals);
+
+    for(int i=0; i<quantization_intervals; i++){
+        precisionTable[i] = pow((1+realPrecision), i - exe_params->intvRadius);
+    }
+    float smallest_precision = precisionTable[0], largest_precision = precisionTable[quantization_intervals-1];
+    //CacheTableBuild(precisionTable, quantization_intervals, smallest_precision, largest_precision, realPrecision, quantization_intervals);
+    struct TopLevelTable levelTable;
+    MultiLevelCacheTableBuild(&levelTable, precisionTable, quantization_intervals, realPrecision);
+    */
+
+	double* precisionTable = (double*)malloc(sizeof(double) * quantization_intervals);
+	for(int i=0; i<quantization_intervals; i++){
+		precisionTable[i] = pow((1+realPrecision), (i - exe_params->intvRadius)*2);
+	}
+	float smallest_precision = precisionTable[0], largest_precision = precisionTable[quantization_intervals-1];
+	struct TopLevelTableWideInterval levelTable;
+	MultiLevelCacheTableWideIntervalBuild(&levelTable, precisionTable, quantization_intervals, realPrecision, confparams_cpr->plus_bits);
+
+	size_t i;
+	int reqLength;
+	float medianValue = medianValue_f;
+	short radExpo = getExponent_float(valueRangeSize/2);
+
+	computeReqLength_float(realPrecision, radExpo, &reqLength, &medianValue);
+
+	int* type = (int*) malloc(dataLength*sizeof(int));
+
+	float* spaceFillingValue = oriData; //
+
+	DynamicInt32Array *exactLeadNumArray;
+	new_DI32A(&exactLeadNumArray, dataLength/2);
+
+	DynamicByteArray *exactMidByteArray;
+	new_DBA(&exactMidByteArray, dataLength/2);
+
+	DynamicIntArray *resiBitArray;
+	new_DIA(&resiBitArray, dataLength/2);
+
+	unsigned char preDataBytes[4];
+	intToBytes_bigEndian(preDataBytes, 0);
+
+	int reqBytesLength = reqLength/8;
+	int resiBitsLength = reqLength%8;
+	float last3CmprsData[3] = {0};
+
+	int miss=0, hit=0;
+
+	FloatValueCompressElement *vce = (FloatValueCompressElement*)malloc(sizeof(FloatValueCompressElement));
+	LossyCompressionElement *lce = (LossyCompressionElement*)malloc(sizeof(LossyCompressionElement));
+	//TimeDurationEnd(&clockPointBuild);
+	//struct ClockPoint clockPointBegin;
+	//TimeDurationStart("begin", &clockPointBegin);
+
+	//add the first data
+	type[0] = 0;
+	compressSingleFloatValue(vce, spaceFillingValue[0], realPrecision, medianValue, reqLength, reqBytesLength, resiBitsLength);
+	updateLossyCompElement_Float_alter(vce->curBytes, preDataBytes, reqBytesLength, resiBitsLength, lce, min);
+	//memcpy(preDataBytes,vce->curBytes,4);
+	addExactData_alter(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
+	listAdd_float(last3CmprsData, vce->data);
+	miss++;
+#ifdef HAVE_TIMECMPR
+	if(confparams_cpr->szMode == SZ_TEMPORAL_COMPRESSION)
+		decData[0] = vce->data;
+#endif
+
+	//add the second data
+	type[1] = 0;
+	compressSingleFloatValue(vce, spaceFillingValue[1], realPrecision, medianValue, reqLength, reqBytesLength, resiBitsLength);
+	updateLossyCompElement_Float_alter(vce->curBytes, preDataBytes, reqBytesLength, resiBitsLength, lce, min);
+	//memcpy(preDataBytes,vce->curBytes,4);
+	addExactData_alter(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
+	listAdd_float(last3CmprsData, vce->data);
+	miss++;
+#ifdef HAVE_TIMECMPR
+	if(confparams_cpr->szMode == SZ_TEMPORAL_COMPRESSION)
+		decData[1] = vce->data;
+#endif
+	int state;
+	//double checkRadius;
+	float curData;
+	float pred;
+	//float predAbsErr;
+	//checkRadius = (exe_params->intvCapacity-1)*realPrecision;
+	//double interval = 2*realPrecision;
+	//float predRelErrRatio;
+	double predRelErrRatio;
+
+	for(i=2;i<dataLength;i++)
+	{
+		curData = spaceFillingValue[i];
+		//pred = 2*last3CmprsData[0] - last3CmprsData[1];
+		pred = last3CmprsData[0];
+		//predAbsErr = fabs(curData - pred);
+		predRelErrRatio = fabsf(curData / pred);
+		//state = MultiLevelCacheTableGetIndex(predRelErrRatio, &levelTable);
+		state = MultiLevelCacheTableWideIntervalGetIndex(predRelErrRatio, &levelTable);
+		if(state)
+		{
+			type[i] = state;
+			float ratio = precisionTable[state];
+			pred = pred * precisionTable[state];
+			listAdd_float(last3CmprsData, pred);
+			hit++;
+
+			continue;
+		}
+
+		//unpredictable data processing
+		type[i] = 0;
+		compressSingleFloatValue(vce, curData, realPrecision, medianValue, reqLength, reqBytesLength, resiBitsLength);
+		updateLossyCompElement_Float_alter(vce->curBytes, preDataBytes, reqBytesLength, resiBitsLength, lce, min);
+		//memcpy(preDataBytes,vce->curBytes,4);
+		addExactData_alter(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
+
+		listAdd_float(last3CmprsData, vce->data);
+		miss++;
+#ifdef HAVE_TIMECMPR
+		if(confparams_cpr->szMode == SZ_TEMPORAL_COMPRESSION)
+			decData[i] = vce->data;
+#endif
+
+	}//end of for
+
+	printf("miss:%d, hit:%d\n", miss, hit);
+	//TimeDurationEnd(&clockPointBegin);
+	//struct ClockPoint clockPointbs;
+	//TimeDurationStart("build struct", &clockPointbs);
+//	char* expSegmentsInBytes;
+//	int expSegmentsInBytes_size = convertESCToBytes(esc, &expSegmentsInBytes);
+	size_t exactDataNum = exactLeadNumArray->size;
+
+	TightDataPointStorageF* tdps;
+
+	new_TightDataPointStorageF_alter(&tdps, dataLength, exactDataNum,
+									 type, exactMidByteArray->array, exactMidByteArray->size,
+									 exactLeadNumArray->array,  min, max,
+									 resiBitArray->array, resiBitArray->size,
+									 resiBitsLength,
+									 realPrecision, medianValue, (char)reqLength, quantization_intervals, NULL, 0, 0);
+
+//sdi:Debug
+/*	int sum =0;
+	for(i=0;i<dataLength;i++)
+		if(type[i]==0) sum++;
+	printf("opt_quantizations=%d, exactDataNum=%d, sum=%d\n",quantization_intervals, exactDataNum, sum);*/
+
+	//free memory
+	free_DIA(exactLeadNumArray);
+	free_DIA(resiBitArray);
+	free(type);
+	free(vce);
+	free(lce);
 	free(exactMidByteArray); //exactMidByteArray->array has been released in free_TightDataPointStorageF(tdps);
 	//TimeDurationEnd(&clockPointbs);
 	return tdps;

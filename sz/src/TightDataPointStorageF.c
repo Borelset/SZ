@@ -328,6 +328,62 @@ void new_TightDataPointStorageF(TightDataPointStorageF **this,
 	(*this)->pwrErrBoundBytes_size = pwrErrBoundBytes_size;
 }
 
+void new_TightDataPointStorageF_alter(TightDataPointStorageF **this,
+                                size_t dataSeriesLength, size_t exactDataNum,
+                                int* type, unsigned char* exactMidBytes, size_t exactMidBytes_size,
+                                int* leadNumIntArray,  //leadNumIntArray contains readable numbers....
+                                int minInLeader, int maxInLeader,
+                                unsigned char* resiMidBits, size_t resiMidBits_size,
+                                unsigned char resiBitLength,
+                                double realPrecision, float medianValue, char reqLength, unsigned int intervals,
+                                unsigned char* pwrErrBoundBytes, size_t pwrErrBoundBytes_size, unsigned char radExpo) {
+
+    *this = (TightDataPointStorageF *)malloc(sizeof(TightDataPointStorageF));
+    (*this)->allSameData = 0;
+    (*this)->realPrecision = realPrecision;
+    (*this)->medianValue = medianValue;
+    (*this)->reqLength = reqLength;
+
+    (*this)->dataSeriesLength = dataSeriesLength;
+    (*this)->exactDataNum = exactDataNum;
+
+    (*this)->rtypeArray = NULL;
+    (*this)->rtypeArray_size = 0;
+
+    //struct ClockPoint clockPointHuffman;
+    //TimeDurationStart("huffman start", &clockPointHuffman);
+    int stateNum = 2*intervals;
+    HuffmanTree* huffmanTree = createHuffmanTree(stateNum);
+    encode_withTree(huffmanTree, type, dataSeriesLength, &(*this)->typeArray, &(*this)->typeArray_size);
+    SZ_ReleaseHuffman(huffmanTree);
+    //TimeDurationEnd(&clockPointHuffman);
+
+    (*this)->exactMidBytes = exactMidBytes;
+    (*this)->exactMidBytes_size = exactMidBytes_size;
+
+    //(*this)->leadNumArray_size = convertIntArray2ByteArray_fast_2b(leadNumIntArray, exactDataNum, &((*this)->leadNumArray));
+    stateNum = maxInLeader - minInLeader + 1;
+    huffmanTree = createHuffmanTree(stateNum);
+    encode_withTree(huffmanTree, leadNumIntArray, exactDataNum, &(*this)->leadNumArray, &(*this)->leadNumArray_size);
+    SZ_ReleaseHuffman(huffmanTree);
+
+    (*this)->residualMidBits_size = convertIntArray2ByteArray_fast_dynamic(resiMidBits, resiBitLength, exactDataNum, &((*this)->residualMidBits));
+
+    (*this)->intervals = intervals;
+
+    (*this)->isLossless = 0;
+
+    if(confparams_cpr->errorBoundMode>=PW_REL)
+        (*this)->pwrErrBoundBytes = pwrErrBoundBytes;
+    else
+        (*this)->pwrErrBoundBytes = NULL;
+
+    (*this)->radExpo = radExpo;
+
+    (*this)->pwrErrBoundBytes_size = pwrErrBoundBytes_size;
+}
+
+
 void new_TightDataPointStorageF2(TightDataPointStorageF **this,
 		size_t dataSeriesLength, size_t exactDataNum, 
 		int* type, unsigned char* exactMidBytes, size_t exactMidBytes_size,
