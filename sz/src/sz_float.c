@@ -360,8 +360,9 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
     */
 	
 	double* precisionTable = (double*)malloc(sizeof(double) * quantization_intervals);
+	double inv = pow(2, -(confparams_cpr->plus_bits));
     for(int i=0; i<quantization_intervals; i++){
-        precisionTable[i] = pow((1+realPrecision), (i - exe_params->intvRadius)*2);
+        precisionTable[i] = pow((1+realPrecision), (i - exe_params->intvRadius)*(2-inv));
     }
     float smallest_precision = precisionTable[0], largest_precision = precisionTable[quantization_intervals-1];
     struct TopLevelTableWideInterval levelTable;

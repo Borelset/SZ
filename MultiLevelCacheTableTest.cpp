@@ -6,6 +6,21 @@
 #include "MultiLevelCacheTableWideInterval.h"
 
 int main(){
+    FILE* file = fopen("testFile", "w");
+    float one = 1.0;
+    float min = 0.000001;
+    float hundred = 1.0e20;
+    for(int i=0; i<100; i++){
+        fwrite(&one, sizeof(float), 1, file);
+    }
+    for(int i=0; i<100; i++){
+        fwrite(&min, sizeof(float), 1, file);
+    }
+    for(int i=0; i<200; i++){
+        fwrite(&hundred, sizeof(float), 1, file);
+    }
+
+    /*
     TopLevelTableWideInterval topLevelTable;
     double precision = 1e-3;
     int quant_int = 32768;
@@ -29,6 +44,7 @@ int main(){
             }
         }
     }
+     */
 
     /*
     TopLevelTable topLevelTable;
