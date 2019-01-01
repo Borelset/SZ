@@ -14,8 +14,8 @@ struct ClockPoint{
 
 static void TimeDurationStart(char* name, struct ClockPoint* clockPoint){
     gettimeofday(&clockPoint->t0, NULL);
-    clockPoint->namePtr = (char*)malloc(sizeof(name));
-    memcpy(clockPoint->namePtr, name, sizeof(name));
+    clockPoint->namePtr = (char*)malloc(strlen(name));
+    memcpy(clockPoint->namePtr, name, strlen(name));
 }
 
 static void TimeDurationEnd(struct ClockPoint* clockPoint){

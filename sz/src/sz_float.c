@@ -337,8 +337,8 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 		decData = (float*)(multisteps->hist_data);
 #endif	
 
-	//struct ClockPoint clockPointBuild;
-	//TimeDurationStart("build", &clockPointBuild);
+	struct ClockPoint clockPointBuild;
+	TimeDurationStart("build", &clockPointBuild);
 	unsigned int quantization_intervals;
 	if(exe_params->optQuantMode==1)
 		quantization_intervals = optimize_intervals_float_1D_opt(oriData, dataLength, realPrecision);
@@ -364,13 +364,13 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
     for(int i=0; i<quantization_intervals; i++){
         precisionTable[i] = pow((1+realPrecision), (i - exe_params->intvRadius)*(2-inv));
     }
-    float smallest_precision = precisionTable[0], largest_precision = precisionTable[quantization_intervals-1];
     struct TopLevelTableWideInterval levelTable;
     MultiLevelCacheTableWideIntervalBuild(&levelTable, precisionTable, quantization_intervals, realPrecision, confparams_cpr->plus_bits);
 
 	size_t i;
 	int reqLength;
 	float medianValue = medianValue_f;
+	float medianValueInverse = 1/ medianValue_f;
 	short radExpo = getExponent_float(valueRangeSize/2);
 	
 	computeReqLength_float(realPrecision, radExpo, &reqLength, &medianValue);	
@@ -399,13 +399,13 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 
 	FloatValueCompressElement *vce = (FloatValueCompressElement*)malloc(sizeof(FloatValueCompressElement));
 	LossyCompressionElement *lce = (LossyCompressionElement*)malloc(sizeof(LossyCompressionElement));
-	//TimeDurationEnd(&clockPointBuild);
-	//struct ClockPoint clockPointBegin;
-	//TimeDurationStart("begin", &clockPointBegin);
+	TimeDurationEnd(&clockPointBuild);
+	struct ClockPoint clockPointBegin;
+	TimeDurationStart("begin", &clockPointBegin);
 				
 	//add the first data	
 	type[0] = 0;
-	compressSingleFloatValue(vce, spaceFillingValue[0], realPrecision, medianValue, reqLength, reqBytesLength, resiBitsLength);
+	compressSingleFloatValue_alter(vce, spaceFillingValue[0], realPrecision, medianValue, medianValueInverse, reqLength, reqBytesLength, resiBitsLength);
 	updateLossyCompElement_Float(vce->curBytes, preDataBytes, reqBytesLength, resiBitsLength, lce);
 	memcpy(preDataBytes,vce->curBytes,4);
 	addExactData(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
@@ -418,7 +418,7 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 		
 	//add the second data
 	type[1] = 0;
-	compressSingleFloatValue(vce, spaceFillingValue[1], realPrecision, medianValue, reqLength, reqBytesLength, resiBitsLength);
+    compressSingleFloatValue_alter(vce, spaceFillingValue[1], realPrecision, medianValue, medianValueInverse, reqLength, reqBytesLength, resiBitsLength);
 	updateLossyCompElement_Float(vce->curBytes, preDataBytes, reqBytesLength, resiBitsLength, lce);
 	memcpy(preDataBytes,vce->curBytes,4);
 	addExactData(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
@@ -437,9 +437,13 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 	//double interval = 2*realPrecision;
 	//float predRelErrRatio;
     double predRelErrRatio;
+
+    double time1 = 0.0, time2 = 0.0, time3 = 0.0, time4 = 0.0;
+    struct timeval t0, t1;
 	
 	for(i=2;i<dataLength;i++)
-	{	
+	{
+
 		curData = spaceFillingValue[i];
 		//pred = 2*last3CmprsData[0] - last3CmprsData[1];
 		pred = last3CmprsData[0];
@@ -447,25 +451,24 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 		predRelErrRatio = fabsf(curData / pred);
 		//state = MultiLevelCacheTableGetIndex(predRelErrRatio, &levelTable);
 		state = MultiLevelCacheTableWideIntervalGetIndex(predRelErrRatio, &levelTable);
+
 		if(state)
 		{
 			type[i] = state;
-			float ratio = precisionTable[state];
 			pred = pred * precisionTable[state];
-			listAdd_float(last3CmprsData, pred);
+			last3CmprsData[0] = pred;
 			hit++;
 
 			continue;
 		}
 		
-		//unpredictable data processing		
-		type[i] = 0;		
-		compressSingleFloatValue(vce, curData, realPrecision, medianValue, reqLength, reqBytesLength, resiBitsLength);
+		//unpredictable data processing
+		type[i] = 0;
+        compressSingleFloatValue_alter(vce, spaceFillingValue[i], realPrecision, medianValue, medianValueInverse, reqLength, reqBytesLength, resiBitsLength);
 		updateLossyCompElement_Float(vce->curBytes, preDataBytes, reqBytesLength, resiBitsLength, lce);
 		memcpy(preDataBytes,vce->curBytes,4);
 		addExactData(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
-
-		listAdd_float(last3CmprsData, vce->data);
+		last3CmprsData[0] = pred;
 		miss++;
 #ifdef HAVE_TIMECMPR
 		if(confparams_cpr->szMode == SZ_TEMPORAL_COMPRESSION)
@@ -475,21 +478,23 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 	}//end of for
 		
 	printf("miss:%d, hit:%d\n", miss, hit);
-    //TimeDurationEnd(&clockPointBegin);
-    //struct ClockPoint clockPointbs;
-    //TimeDurationStart("build struct", &clockPointbs);
+	printf("time1:%f, time2:%f, time3:%f, time4:%f\n", time1, time2, time3, time4);
+    TimeDurationEnd(&clockPointBegin);
+    struct ClockPoint clockPointbs;
+    TimeDurationStart("build struct", &clockPointbs);
 //	char* expSegmentsInBytes;
 //	int expSegmentsInBytes_size = convertESCToBytes(esc, &expSegmentsInBytes);
 	size_t exactDataNum = exactLeadNumArray->size;
 	
 	TightDataPointStorageF* tdps;
 			
-	new_TightDataPointStorageF(&tdps, dataLength, exactDataNum, 
+	new_TightDataPointStorageF(&tdps, dataLength, exactDataNum,
 			type, exactMidByteArray->array, exactMidByteArray->size,  
 			exactLeadNumArray->array,  
 			resiBitArray->array, resiBitArray->size, 
 			resiBitsLength,
 			realPrecision, medianValue, (char)reqLength, quantization_intervals, NULL, 0, 0);
+	tdps->plus_bits = confparams_cpr->plus_bits;
 
 //sdi:Debug
 /*	int sum =0;
@@ -504,7 +509,7 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 	free(vce);
 	free(lce);	
 	free(exactMidByteArray); //exactMidByteArray->array has been released in free_TightDataPointStorageF(tdps);
-	//TimeDurationEnd(&clockPointbs);
+	TimeDurationEnd(&clockPointbs);
 	return tdps;
 }
 
@@ -1825,8 +1830,8 @@ int SZ_compress_args_float(unsigned char** newByteData, float *oriData,
 size_t r5, size_t r4, size_t r3, size_t r2, size_t r1, size_t *outSize, 
 int errBoundMode, double absErr_Bound, double relBoundRatio, double pwRelBoundRatio)
 {
-    //struct ClockPoint clockPointStart;
-    //TimeDurationStart("Start", &clockPointStart);
+    struct ClockPoint clockPointStart;
+    TimeDurationStart("Start", &clockPointStart);
 	confparams_cpr->errorBoundMode = errBoundMode;
 	if(errBoundMode==PW_REL)
 	{
@@ -1867,15 +1872,15 @@ int errBoundMode, double absErr_Bound, double relBoundRatio, double pwRelBoundRa
 	else
 		realPrecision = getRealPrecision_float(valueRangeSize, errBoundMode, absErr_Bound, relBoundRatio, &status);
 
-	//TimeDurationEnd(&clockPointStart);
+	TimeDurationEnd(&clockPointStart);
 	if(valueRangeSize <= realPrecision)
 	{
 		SZ_compress_args_float_withinRange(newByteData, oriData, dataLength, outSize);
 	}
 	else
 	{
-	    //struct ClockPoint clockPointMethod;
-        //TimeDurationStart("method", &clockPointMethod);
+	    struct ClockPoint clockPointMethod;
+        TimeDurationStart("method", &clockPointMethod);
 		size_t tmpOutSize = 0;
 		unsigned char* tmpByteData;
 		
@@ -1980,9 +1985,9 @@ int errBoundMode, double absErr_Bound, double relBoundRatio, double pwRelBoundRa
 			printf("Error: doesn't support 5 dimensions for now.\n");
 			status = SZ_DERR; //dimension error
 		}
-		//TimeDurationEnd(&clockPointMethod);
-		//struct ClockPoint clockPointPost;
-		//TimeDurationStart("post", &clockPointPost);
+		TimeDurationEnd(&clockPointMethod);
+		struct ClockPoint clockPointPost;
+		TimeDurationStart("post", &clockPointPost);
 		//Call Gzip to do the further compression.
 		if(confparams_cpr->szMode==SZ_BEST_SPEED)
 		{
@@ -1999,7 +2004,7 @@ int errBoundMode, double absErr_Bound, double relBoundRatio, double pwRelBoundRa
 			printf("Error: Wrong setting of confparams_cpr->szMode in the float compression.\n");
 			status = SZ_MERR; //mode error			
 		}
-		//TimeDurationEnd(&clockPointPost);
+		TimeDurationEnd(&clockPointPost);
 	}
 	
 	return status;

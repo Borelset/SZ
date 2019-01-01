@@ -4,8 +4,25 @@
 
 #include <math.h>
 #include "MultiLevelCacheTableWideInterval.h"
+#include "TimeDuration.h"
 
 int main(){
+    ClockPoint clockPoint;
+    TimeDurationStart("plus", &clockPoint);
+    float j = 0.0;
+    for(int i=0; i<10000000; i++){
+        j += 1.123;
+    }
+    TimeDurationEnd(&clockPoint);
+
+    TimeDurationStart("multi", &clockPoint);
+    j = 1.0;
+    for(int i=0; i<5000000; i++){
+        j *= 0.812;
+        j *= 1.123;
+    }
+    TimeDurationEnd(&clockPoint);
+    /*
     FILE* file = fopen("testFile", "w");
     float one = 1.0;
     float min = 0.000001;
@@ -19,6 +36,7 @@ int main(){
     for(int i=0; i<200; i++){
         fwrite(&hundred, sizeof(float), 1, file);
     }
+     */
 
     /*
     TopLevelTableWideInterval topLevelTable;

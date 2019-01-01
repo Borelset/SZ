@@ -445,6 +445,31 @@ void compressSingleFloatValue(FloatValueCompressElement *vce, float tgtValue, fl
 	vce->resiBitsLength = resiBitsLength;
 }
 
+void compressSingleFloatValue_alter(FloatValueCompressElement *vce, float tgtValue, float precision, float medianValue, float medianValueInverse,
+                              int reqLength, int reqBytesLength, int resiBitsLength)
+{
+    float normValue = tgtValue * medianValueInverse;
+
+    lfloat lfBuf;
+    lfBuf.value = normValue;
+
+    int ignBytesLength = 32 - reqLength;
+    if(ignBytesLength<0)
+        ignBytesLength = 0;
+
+    int tmp_int = lfBuf.ivalue;
+    intToBytes_bigEndian(vce->curBytes, tmp_int);
+
+    lfBuf.ivalue = (lfBuf.ivalue >> ignBytesLength) << ignBytesLength;
+
+    //float tmpValue = lfBuf.value;
+
+    vce->data = lfBuf.value * medianValue;
+    vce->curValue = tmp_int;
+    vce->reqBytesLength = reqBytesLength;
+    vce->resiBitsLength = resiBitsLength;
+}
+
 void compressSingleDoubleValue(DoubleValueCompressElement *vce, double tgtValue, double precision, double medianValue, 
 		int reqLength, int reqBytesLength, int resiBitsLength)
 {		

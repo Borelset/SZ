@@ -64,8 +64,11 @@ void compressUInt16Value(uint16_t tgtValue, uint16_t minValue, int byteSize, uns
 void compressUInt32Value(uint32_t tgtValue, uint32_t minValue, int byteSize, unsigned char* bytes);
 void compressUInt64Value(uint64_t tgtValue, uint64_t minValue, int byteSize, unsigned char* bytes);
 
-void compressSingleFloatValue(FloatValueCompressElement *vce, float tgtValue, float precision, float medianValue, 
+void compressSingleFloatValue(FloatValueCompressElement *vce, float tgtValue, float precision, float medianValue,
 		int reqLength, int reqBytesLength, int resiBitsLength);
+void compressSingleFloatValue_alter(FloatValueCompressElement *vce, float tgtValue, float precision, float medianValue, float medianValueInverse,
+                              int reqLength, int reqBytesLength, int resiBitsLength);
+
 void compressSingleDoubleValue(DoubleValueCompressElement *vce, double tgtValue, double precision, double medianValue, 
 		int reqLength, int reqBytesLength, int resiBitsLength);
 int compIdenticalLeadingBytesCount_double(unsigned char* preBytes, unsigned char* curBytes);
