@@ -1889,9 +1889,11 @@ void SZ_compress_args_float_NoCkRngeNoGzip_1D_pwr_pre_log_alter(unsigned char** 
 		}
 	}
 
+	float median_log = sqrt(fabs(nearZero * max));
+
 	//struct ClockPoint clockPointPW;
 	//TimeDurationStart("point-wise", &clockPointPW);
-	TightDataPointStorageF* tdps = SZ_compress_float_1D_MDQ(oriData, dataLength, pwrErrRatio, valueRangeSize, medianValue_f);
+	TightDataPointStorageF* tdps = SZ_compress_float_1D_MDQ(oriData, dataLength, pwrErrRatio, valueRangeSize, median_log);
 	//TimeDurationEnd(&clockPointPW);
 	//struct ClockPoint clockPointSS;
 	//TimeDurationStart("struct into stream", &clockPointSS);

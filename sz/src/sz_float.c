@@ -360,9 +360,10 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
     */
 	
 	double* precisionTable = (double*)malloc(sizeof(double) * quantization_intervals);
-	double inv = pow(2, -(confparams_cpr->plus_bits));
+	double inv = 2.0-pow(2, -(confparams_cpr->plus_bits));
     for(int i=0; i<quantization_intervals; i++){
-        precisionTable[i] = pow((1+realPrecision), (i - exe_params->intvRadius)*(2-inv));
+        double test = pow((1+realPrecision), inv*(i - exe_params->intvRadius));
+        precisionTable[i] = test;
     }
     float smallest_precision = precisionTable[0], largest_precision = precisionTable[quantization_intervals-1];
     struct TopLevelTableWideInterval levelTable;
@@ -371,6 +372,7 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 	size_t i;
 	int reqLength;
 	float medianValue = medianValue_f;
+	float medianInverse = 1 / medianValue_f;
 	short radExpo = getExponent_float(valueRangeSize/2);
 	
 	computeReqLength_float(realPrecision, radExpo, &reqLength, &medianValue);	
@@ -405,7 +407,7 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 				
 	//add the first data	
 	type[0] = 0;
-	compressSingleFloatValue(vce, spaceFillingValue[0], realPrecision, medianValue, reqLength, reqBytesLength, resiBitsLength);
+	compressSingleFloatValue_alter(vce, spaceFillingValue[0], realPrecision, medianValue, medianInverse, reqLength, reqBytesLength, resiBitsLength);
 	updateLossyCompElement_Float(vce->curBytes, preDataBytes, reqBytesLength, resiBitsLength, lce);
 	memcpy(preDataBytes,vce->curBytes,4);
 	addExactData(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
@@ -418,7 +420,7 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 		
 	//add the second data
 	type[1] = 0;
-	compressSingleFloatValue(vce, spaceFillingValue[1], realPrecision, medianValue, reqLength, reqBytesLength, resiBitsLength);
+	compressSingleFloatValue_alter(vce, spaceFillingValue[1], realPrecision, medianValue, medianInverse, reqLength, reqBytesLength, resiBitsLength);
 	updateLossyCompElement_Float(vce->curBytes, preDataBytes, reqBytesLength, resiBitsLength, lce);
 	memcpy(preDataBytes,vce->curBytes,4);
 	addExactData(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
@@ -431,41 +433,52 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 	int state;
 	//double checkRadius;
 	float curData;
-	float pred;
+	float pred = vce->data;
 	//float predAbsErr;
 	//checkRadius = (exe_params->intvCapacity-1)*realPrecision;
 	//double interval = 2*realPrecision;
 	//float predRelErrRatio;
     double predRelErrRatio;
-	
+
+	const uint64_t top = levelTable.topIndex, base = levelTable.baseIndex;
+	const uint64_t range = top - base;
+	const int bits = levelTable.bits;
+	uint64_t* const buffer = &predRelErrRatio;
+	const int shift = 52-bits;
+	uint64_t expoIndex, mantiIndex;
+	uint16_t* tables[range+1];
+	for(int i=0; i<=range; i++){
+		tables[i] = levelTable.subTables[i].table;
+	}
+
 	for(i=2;i<dataLength;i++)
-	{	
+	{
 		curData = spaceFillingValue[i];
-		//pred = 2*last3CmprsData[0] - last3CmprsData[1];
-		pred = last3CmprsData[0];
-		//predAbsErr = fabs(curData - pred);
 		predRelErrRatio = fabsf(curData / pred);
-		//state = MultiLevelCacheTableGetIndex(predRelErrRatio, &levelTable);
-		state = MultiLevelCacheTableWideIntervalGetIndex(predRelErrRatio, &levelTable);
+
+		expoIndex = ((*buffer) >> 52) - base;
+		if(expoIndex <= range){
+			mantiIndex = (*buffer & 0x000fffffffffffff) >> shift;
+			state = tables[expoIndex][mantiIndex];
+		}else{
+			state = 0;
+		}
+
 		if(state)
 		{
 			type[i] = state;
-			float ratio = precisionTable[state];
-			pred = pred * precisionTable[state];
-			listAdd_float(last3CmprsData, pred);
+			pred *= precisionTable[state];
 			hit++;
-
 			continue;
 		}
-		
-		//unpredictable data processing		
-		type[i] = 0;		
-		compressSingleFloatValue(vce, curData, realPrecision, medianValue, reqLength, reqBytesLength, resiBitsLength);
+
+		//unpredictable data processing
+		type[i] = 0;
+		compressSingleFloatValue_alter(vce, curData, realPrecision, medianValue, medianInverse, reqLength, reqBytesLength, resiBitsLength);
 		updateLossyCompElement_Float(vce->curBytes, preDataBytes, reqBytesLength, resiBitsLength, lce);
 		memcpy(preDataBytes,vce->curBytes,4);
 		addExactData(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
-
-		listAdd_float(last3CmprsData, vce->data);
+		pred =  vce->data;
 		miss++;
 #ifdef HAVE_TIMECMPR
 		if(confparams_cpr->szMode == SZ_TEMPORAL_COMPRESSION)
@@ -490,7 +503,7 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 			resiBitArray->array, resiBitArray->size, 
 			resiBitsLength,
 			realPrecision, medianValue, (char)reqLength, quantization_intervals, NULL, 0, 0);
-
+    tdps->plus_bits = confparams_cpr->plus_bits;
 //sdi:Debug
 /*	int sum =0;
 	for(i=0;i<dataLength;i++)

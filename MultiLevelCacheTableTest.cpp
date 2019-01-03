@@ -5,7 +5,10 @@
 #include <math.h>
 #include "MultiLevelCacheTableWideInterval.h"
 
+
 int main(){
+
+    /*
     FILE* file = fopen("testFile", "w");
     float one = 1.0;
     float min = 0.000001;
@@ -19,6 +22,7 @@ int main(){
     for(int i=0; i<200; i++){
         fwrite(&hundred, sizeof(float), 1, file);
     }
+     */
 
     /*
     TopLevelTableWideInterval topLevelTable;

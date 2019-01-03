@@ -172,6 +172,8 @@ int new_TightDataPointStorageF_fromFlatBytes(TightDataPointStorageF **this, unsi
 	(*this)->medianValue = bytesToFloat(byteBuf); //4
 	
 	(*this)->reqLength = flatBytes[index++]; //1
+
+	(*this)->plus_bits = flatBytes[index++];
 	
 	for (i = 0; i < 8; i++)
 		byteBuf[i] = flatBytes[index++];
@@ -313,11 +315,11 @@ void new_TightDataPointStorageF(TightDataPointStorageF **this,
 	(*this)->leadNumArray_size = convertIntArray2ByteArray_fast_2b(leadNumIntArray, exactDataNum, &((*this)->leadNumArray));
 
 	(*this)->residualMidBits_size = convertIntArray2ByteArray_fast_dynamic(resiMidBits, resiBitLength, exactDataNum, &((*this)->residualMidBits));
-	
+
 	(*this)->intervals = intervals;
 	
 	(*this)->isLossless = 0;
-	
+
 	if(confparams_cpr->errorBoundMode>=PW_REL)
 		(*this)->pwrErrBoundBytes = pwrErrBoundBytes;
 	else
@@ -392,6 +394,7 @@ void convertTDPStoBytes_float(TightDataPointStorageF* tdps, unsigned char* bytes
 	unsigned char segment_sizeBytes[8];
 	unsigned char pwrErrBoundBytes_sizeBytes[4];
 	unsigned char max_quant_intervals_Bytes[4];
+	unsigned char plus_bits;
 	
 	
 	for(i = 0;i<3;i++)//3 bytes
@@ -429,6 +432,8 @@ void convertTDPStoBytes_float(TightDataPointStorageF* tdps, unsigned char* bytes
 		bytes[k++] = medianValueBytes[i];		
 
 	bytes[k++] = tdps->reqLength; //1 byte
+
+	bytes[k++] = tdps->plus_bits;
 
 /*	if(errorBoundMode>=PW_REL)
 		doubleToBytes(realPrecisionBytes, pw_relBoundRatio);
@@ -640,7 +645,7 @@ void convertTDPStoFlatBytes_float(TightDataPointStorageF *tdps, unsigned char** 
 		size_t totalByteLength = 3 + 1 + MetaDataByteLength + exe_params->SZ_SIZE_TYPE + 4 + radExpoL + segmentL + pwrBoundArrayL + 4 + 4 + 1 + 8 
 				+ exe_params->SZ_SIZE_TYPE + exe_params->SZ_SIZE_TYPE + exe_params->SZ_SIZE_TYPE + minLogValueSize
 				+ tdps->typeArray_size + tdps->leadNumArray_size 
-				+ tdps->exactMidBytes_size + residualMidBitsLength + tdps->pwrErrBoundBytes_size;
+				+ tdps->exactMidBytes_size + residualMidBitsLength + tdps->pwrErrBoundBytes_size + 1;
 
 		*bytes = (unsigned char *)malloc(sizeof(unsigned char)*totalByteLength);
 

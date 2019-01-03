@@ -131,7 +131,7 @@ int main(int argc, char * argv[])
 
     double sum3 = 0, sum4 = 0;
     double sum = 0, prodSum = 0, relerr = 0;
-   
+
     double maxpw_relerr = 0;
 
     for (i = 0; i < nbEle; i++)
@@ -147,8 +147,10 @@ int main(int argc, char * argv[])
                 relerr = err/ori_data[i];
             else
                 relerr = err;
-            if(maxpw_relerr<relerr)
+            if(maxpw_relerr<relerr){
                 maxpw_relerr = relerr;
+            }
+
 
         }
 
