@@ -454,9 +454,9 @@ size_t dataLength, double realPrecision, float valueRangeSize, float medianValue
 	for(i=2;i<dataLength;i++)
 	{
 		curData = spaceFillingValue[i];
-		predRelErrRatio = fabsf(curData / pred);
+		predRelErrRatio = curData / pred;
 
-		expoIndex = ((*buffer) >> 52) - base;
+		expoIndex = ((*buffer & 0x7fffffffffffffff) >> 52) - base;
 		if(expoIndex <= range){
 			mantiIndex = (*buffer & 0x000fffffffffffff) >> shift;
 			state = tables[expoIndex][mantiIndex];
