@@ -269,7 +269,7 @@ void decompressDataSeries_float_2D(float** data, size_t r1, size_t r2, TightData
 
 	*data = (float*)malloc(sizeof(float)*dataSeriesLength);
 
-	int* type = (int*)malloc(dataSeriesLength*sizeof(int));
+    int* type = (int*)malloc(dataSeriesLength*sizeof(int));
 
 	HuffmanTree* huffmanTree = createHuffmanTree(tdps->stateNum);
 	decode_withTree(huffmanTree, tdps->typeArray, dataSeriesLength, type);
@@ -286,7 +286,14 @@ void decompressDataSeries_float_2D(float** data, size_t r1, size_t r2, TightData
 	float medianValue, exactData;
 	int type_;
 
-	reqBytesLength = tdps->reqLength/8;
+    double* precisionTable = (double*)malloc(sizeof(double) * exe_params->intvCapacity);
+    double inv = 2.0-pow(2, -(tdps->plus_bits));
+    for(int i=0; i<exe_params->intvCapacity; i++){
+        double test = pow((1+tdps->realPrecision), inv*(i - exe_params->intvRadius));
+        precisionTable[i] = test;
+    }
+
+    reqBytesLength = tdps->reqLength/8;
 	resiBitsLength = tdps->reqLength%8;
 	medianValue = tdps->medianValue;
 	
@@ -333,7 +340,7 @@ void decompressDataSeries_float_2D(float** data, size_t r1, size_t r2, TightData
 	}
 
 	exactData = bytesToFloat(curBytes);
-	(*data)[0] = exactData + medianValue;
+	(*data)[0] = exactData * medianValue;
 	memcpy(preBytes,curBytes,4);
 
 	/* Process Row-0, data 1 */
@@ -341,7 +348,7 @@ void decompressDataSeries_float_2D(float** data, size_t r1, size_t r2, TightData
 	if (type_ != 0)
 	{
 		pred1D = (*data)[0];
-		(*data)[1] = pred1D + 2 * (type_ - exe_params->intvRadius) * realPrecision;
+		(*data)[1] = fabs(pred1D) * precisionTable[type_];
 	}
 	else
 	{
@@ -383,7 +390,7 @@ void decompressDataSeries_float_2D(float** data, size_t r1, size_t r2, TightData
 		}
 
 		exactData = bytesToFloat(curBytes);
-		(*data)[1] = exactData + medianValue;
+		(*data)[1] = exactData * medianValue;
 		memcpy(preBytes,curBytes,4);
 	}
 
@@ -393,8 +400,8 @@ void decompressDataSeries_float_2D(float** data, size_t r1, size_t r2, TightData
 		type_ = type[jj];
 		if (type_ != 0)
 		{
-			pred1D = 2*(*data)[jj-1] - (*data)[jj-2];				
-			(*data)[jj] = pred1D + 2 * (type_ - exe_params->intvRadius) * realPrecision;
+			pred1D = (*data)[jj-1] * (*data)[jj-1] / (*data)[jj-2];
+			(*data)[jj] = fabs(pred1D) * precisionTable[type_];
 		}
 		else
 		{
@@ -436,7 +443,7 @@ void decompressDataSeries_float_2D(float** data, size_t r1, size_t r2, TightData
 			}
 
 			exactData = bytesToFloat(curBytes);
-			(*data)[jj] = exactData + medianValue;
+			(*data)[jj] = exactData * medianValue;
 			memcpy(preBytes,curBytes,4);
 		}
 	}
@@ -452,7 +459,7 @@ void decompressDataSeries_float_2D(float** data, size_t r1, size_t r2, TightData
 		if (type_ != 0)
 		{
 			pred1D = (*data)[index-r2];		
-			(*data)[index] = pred1D + 2 * (type_ - exe_params->intvRadius) * realPrecision;
+			(*data)[index] = fabs(pred1D) * precisionTable[type_];
 		}
 		else
 		{
@@ -494,7 +501,7 @@ void decompressDataSeries_float_2D(float** data, size_t r1, size_t r2, TightData
 			}
 
 			exactData = bytesToFloat(curBytes);
-			(*data)[index] = exactData + medianValue;
+			(*data)[index] = exactData * medianValue;
 			memcpy(preBytes,curBytes,4);
 		}
 
@@ -502,12 +509,12 @@ void decompressDataSeries_float_2D(float** data, size_t r1, size_t r2, TightData
 		for (jj = 1; jj < r2; jj++)
 		{
 			index = ii*r2+jj;
-			pred2D = (*data)[index-1] + (*data)[index-r2] - (*data)[index-r2-1];
+			pred2D = (*data)[index-1] * (*data)[index-r2] / (*data)[index-r2-1];
 
 			type_ = type[index];
 			if (type_ != 0)
 			{
-				(*data)[index] = pred2D + 2 * (type_ - exe_params->intvRadius) * realPrecision;
+				(*data)[index] = fabs(pred2D) * precisionTable[type_];
 			}
 			else
 			{
@@ -549,7 +556,7 @@ void decompressDataSeries_float_2D(float** data, size_t r1, size_t r2, TightData
 				}
 
 				exactData = bytesToFloat(curBytes);
-				(*data)[index] = exactData + medianValue;
+				(*data)[index] = exactData * medianValue;
 				memcpy(preBytes,curBytes,4);
 			}
 		}
@@ -582,6 +589,13 @@ void decompressDataSeries_float_3D(float** data, size_t r1, size_t r2, size_t r3
 
 	*data = (float*)malloc(sizeof(float)*dataSeriesLength);
 	int* type = (int*)malloc(dataSeriesLength*sizeof(int));
+
+	double* precisionTable = (double*)malloc(sizeof(double) * exe_params->intvCapacity);
+	double inv = 2.0-pow(2, -(tdps->plus_bits));
+	for(int i=0; i<exe_params->intvCapacity; i++){
+		double test = pow((1+tdps->realPrecision), inv*(i - exe_params->intvRadius));
+		precisionTable[i] = test;
+	}
 
 	HuffmanTree* huffmanTree = createHuffmanTree(tdps->stateNum);
 	decode_withTree(huffmanTree, tdps->typeArray, dataSeriesLength, type);
@@ -643,7 +657,7 @@ void decompressDataSeries_float_3D(float** data, size_t r1, size_t r2, size_t r3
 		curBytes[reqBytesLength] = resiByte;
 	}
 	exactData = bytesToFloat(curBytes);
-	(*data)[0] = exactData + medianValue;
+	(*data)[0] = exactData * medianValue;
 	memcpy(preBytes,curBytes,4);
 
 	/* Process Row-0, data 1 */
@@ -652,7 +666,7 @@ void decompressDataSeries_float_3D(float** data, size_t r1, size_t r2, size_t r3
 	type_ = type[1];
 	if (type_ != 0)
 	{
-		(*data)[1] = pred1D + 2 * (type_ - exe_params->intvRadius) * realPrecision;
+		(*data)[1] = fabs(pred1D) * precisionTable[type_];
 	}
 	else
 	{
@@ -694,18 +708,18 @@ void decompressDataSeries_float_3D(float** data, size_t r1, size_t r2, size_t r3
 		}
 
 		exactData = bytesToFloat(curBytes);
-		(*data)[1] = exactData + medianValue;
+		(*data)[1] = exactData * medianValue;
 		memcpy(preBytes,curBytes,4);
 	}
 	/* Process Row-0, data 2 --> data r3-1 */
 	for (jj = 2; jj < r3; jj++)
 	{
-		pred1D = 2*(*data)[jj-1] - (*data)[jj-2];
+		pred1D = (*data)[jj-1] *( *data)[jj-1] / (*data)[jj-2];
 
 		type_ = type[jj];
 		if (type_ != 0)
 		{
-			(*data)[jj] = pred1D + 2 * (type_ - exe_params->intvRadius) * realPrecision;
+			(*data)[jj] = fabsf(pred1D) * precisionTable[type_];
 		}
 		else
 		{
@@ -747,7 +761,7 @@ void decompressDataSeries_float_3D(float** data, size_t r1, size_t r2, size_t r3
 			}
 
 			exactData = bytesToFloat(curBytes);
-			(*data)[jj] = exactData + medianValue;
+			(*data)[jj] = exactData * medianValue;
 			memcpy(preBytes,curBytes,4);
 		}
 	}
@@ -763,7 +777,7 @@ void decompressDataSeries_float_3D(float** data, size_t r1, size_t r2, size_t r3
 		type_ = type[index];
 		if (type_ != 0)
 		{
-			(*data)[index] = pred1D + 2 * (type_ - exe_params->intvRadius) * realPrecision;
+			(*data)[index] = fabsf(pred1D) * precisionTable[type_];
 		}
 		else
 		{
@@ -805,7 +819,7 @@ void decompressDataSeries_float_3D(float** data, size_t r1, size_t r2, size_t r3
 			}
 
 			exactData = bytesToFloat(curBytes);
-			(*data)[index] = exactData + medianValue;
+			(*data)[index] = exactData * medianValue;
 			memcpy(preBytes,curBytes,4);
 		}
 
@@ -813,12 +827,17 @@ void decompressDataSeries_float_3D(float** data, size_t r1, size_t r2, size_t r3
 		for (jj = 1; jj < r3; jj++)
 		{
 			index = ii*r3+jj;
-			pred2D = (*data)[index-1] + (*data)[index-r3] - (*data)[index-r3-1];
+			pred2D = (*data)[index-1] * (*data)[index-r3] / (*data)[index-r3-1];
+			float a = (*data)[index-1];
+			float b = (*data)[index-r3];
+			float c = (*data)[index-r3-1];
 
 			type_ = type[index];
 			if (type_ != 0)
 			{
-				(*data)[index] = pred2D + 2 * (type_ - exe_params->intvRadius) * realPrecision;
+			    float ppp = precisionTable[type_];
+			    float test = fabsf(pred2D) * precisionTable[type_];
+				(*data)[index] = fabsf(pred2D) * precisionTable[type_];
 			}
 			else
 			{
@@ -860,7 +879,7 @@ void decompressDataSeries_float_3D(float** data, size_t r1, size_t r2, size_t r3
 				}
 
 				exactData = bytesToFloat(curBytes);
-				(*data)[index] = exactData + medianValue;
+				(*data)[index] = exactData * medianValue;
 				memcpy(preBytes,curBytes,4);
 			}
 		}
@@ -877,7 +896,7 @@ void decompressDataSeries_float_3D(float** data, size_t r1, size_t r2, size_t r3
 		type_ = type[index];
 		if (type_ != 0)
 		{
-			(*data)[index] = pred1D + 2 * (type_ - exe_params->intvRadius) * realPrecision;
+			(*data)[index] = fabsf(pred1D) * precisionTable[type_];
 		}
 		else
 		{
@@ -919,7 +938,7 @@ void decompressDataSeries_float_3D(float** data, size_t r1, size_t r2, size_t r3
 			}
 
 			exactData = bytesToFloat(curBytes);
-			(*data)[index] = exactData + medianValue;
+			(*data)[index] = exactData * medianValue;
 			memcpy(preBytes,curBytes,4);
 		}
 
@@ -927,12 +946,12 @@ void decompressDataSeries_float_3D(float** data, size_t r1, size_t r2, size_t r3
 		for (jj = 1; jj < r3; jj++)
 		{
 			index = kk*r23+jj;
-			pred2D = (*data)[index-1] + (*data)[index-r23] - (*data)[index-r23-1];
+			pred2D = (*data)[index-1] * (*data)[index-r23] / (*data)[index-r23-1];
 
 			type_ = type[index];
 			if (type_ != 0)
 			{
-				(*data)[index] = pred2D + 2 * (type_ - exe_params->intvRadius) * realPrecision;
+				(*data)[index] = fabsf(pred2D) * precisionTable[type_];
 			}
 			else
 			{
@@ -974,7 +993,7 @@ void decompressDataSeries_float_3D(float** data, size_t r1, size_t r2, size_t r3
 				}
 
 				exactData = bytesToFloat(curBytes);
-				(*data)[index] = exactData + medianValue;
+				(*data)[index] = exactData * medianValue;
 				memcpy(preBytes,curBytes,4);
 			}
 		}
@@ -984,12 +1003,12 @@ void decompressDataSeries_float_3D(float** data, size_t r1, size_t r2, size_t r3
 		{
 			/* Process Row-i data 0 */
 			index = kk*r23 + ii*r3;
-			pred2D = (*data)[index-r3] + (*data)[index-r23] - (*data)[index-r23-r3];
+			pred2D = (*data)[index-r3] * (*data)[index-r23] / (*data)[index-r23-r3];
 
 			type_ = type[index];
 			if (type_ != 0)
 			{
-				(*data)[index] = pred2D + 2 * (type_ - exe_params->intvRadius) * realPrecision;
+				(*data)[index] = fabsf(pred2D) * precisionTable[type_];
 			}
 			else
 			{
@@ -1031,7 +1050,7 @@ void decompressDataSeries_float_3D(float** data, size_t r1, size_t r2, size_t r3
 				}
 
 				exactData = bytesToFloat(curBytes);
-				(*data)[index] = exactData + medianValue;
+				(*data)[index] = exactData * medianValue;
 				memcpy(preBytes,curBytes,4);
 			}
 
@@ -1039,13 +1058,14 @@ void decompressDataSeries_float_3D(float** data, size_t r1, size_t r2, size_t r3
 			for (jj = 1; jj < r3; jj++)
 			{
 				index = kk*r23 + ii*r3 + jj;
-				pred3D = (*data)[index-1] + (*data)[index-r3] + (*data)[index-r23]
-					- (*data)[index-r3-1] - (*data)[index-r23-r3] - (*data)[index-r23-1] + (*data)[index-r23-r3-1];
+				//pred3D = (*data)[index-1] + (*data)[index-r3] + (*data)[index-r23]
+				//	- (*data)[index-r3-1] - (*data)[index-r23-r3] - (*data)[index-r23-1] + (*data)[index-r23-r3-1];
+				pred3D = (*data)[index-1] * (*data)[index-r3] * (*data)[index-r23] * (*data)[index-r23-r3-1] / ((*data)[index-r3-1] * (*data)[index-r23-r3] * (*data)[index-r23-1]);
 
 				type_ = type[index];
 				if (type_ != 0)
 				{
-					(*data)[index] = pred3D + 2 * (type_ - exe_params->intvRadius) * realPrecision;
+					(*data)[index] = fabsf(pred3D) * precisionTable[type_];
 				}
 				else
 				{
@@ -1087,7 +1107,7 @@ void decompressDataSeries_float_3D(float** data, size_t r1, size_t r2, size_t r3
 					}
 
 					exactData = bytesToFloat(curBytes);
-					(*data)[index] = exactData + medianValue;
+					(*data)[index] = exactData * medianValue;
 					memcpy(preBytes,curBytes,4);
 				}
 			}

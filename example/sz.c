@@ -72,7 +72,7 @@ void usage()
 	printf("	sz -z -f -c sz.config -i testdata/x86/testfloat_8_8_128.dat -3 8 8 128\n");
 	printf("	sz -z -f -c sz.config -M ABS -A 1E-3 -i testdata/x86/testfloat_8_8_128.dat -3 8 8 128\n");
 	printf("	sz -x -f -s testdata/x86/testfloat_8_8_128.dat.sz -3 8 8 128\n");
-	printf("	sz -x -f -s testdata/x86/testfloat_8_8_128.dat.sz -i testdata/x86/testfloat_8_8_128.dat -3 8 8 128 -a\n");	
+	printf("	sz -x -f -s testdata/x86/testfloat_8_8_128.dat.sz -i testdata/x86/testfloat_8_8_128.dat -3 8 8 128 -a\n");
 	printf("	sz -z -d -c sz.config -i testdata/x86/testdouble_8_8_128.dat -3 8 8 128\n");
 	printf("	sz -x -d -s testdata/x86/testdouble_8_8_128.dat.sz -3 8 8 128\n");
 	printf("	sz -p -s testdata/x86/testdouble_8_8_128.dat.sz\n");
@@ -102,7 +102,7 @@ int main(int argc, char* argv[])
 	size_t r5 = 0;
 	size_t r4 = 0;
 	size_t r3 = 0;
-	size_t r2 = 0; 
+	size_t r2 = 0;
 	size_t r1 = 0;
 	
 	size_t i = 0;
