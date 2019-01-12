@@ -616,6 +616,8 @@ void decompressDataSeries_float_3D(float** data, size_t r1, size_t r2, size_t r3
 	medianValue = tdps->medianValue;
 	
 	float pred1D, pred2D, pred3D;
+	double temp;
+	double temp2;
 	size_t ii, jj, kk;
 
 	///////////////////////////	Process layer-0 ///////////////////////////
@@ -714,7 +716,8 @@ void decompressDataSeries_float_3D(float** data, size_t r1, size_t r2, size_t r3
 	/* Process Row-0, data 2 --> data r3-1 */
 	for (jj = 2; jj < r3; jj++)
 	{
-		pred1D = (*data)[jj-1] *( *data)[jj-1] / (*data)[jj-2];
+		temp = (*data)[jj-1];
+		pred1D = temp * ( *data)[jj-1] / (*data)[jj-2];
 
 		type_ = type[jj];
 		if (type_ != 0)
@@ -827,10 +830,8 @@ void decompressDataSeries_float_3D(float** data, size_t r1, size_t r2, size_t r3
 		for (jj = 1; jj < r3; jj++)
 		{
 			index = ii*r3+jj;
-			pred2D = (*data)[index-1] * (*data)[index-r3] / (*data)[index-r3-1];
-			float a = (*data)[index-1];
-			float b = (*data)[index-r3];
-			float c = (*data)[index-r3-1];
+			temp = (*data)[index-1];
+			pred2D = temp * (*data)[index-r3] / (*data)[index-r3-1];
 
 			type_ = type[index];
 			if (type_ != 0)
@@ -946,7 +947,8 @@ void decompressDataSeries_float_3D(float** data, size_t r1, size_t r2, size_t r3
 		for (jj = 1; jj < r3; jj++)
 		{
 			index = kk*r23+jj;
-			pred2D = (*data)[index-1] * (*data)[index-r23] / (*data)[index-r23-1];
+			temp = (*data)[index-1];
+			pred2D = temp * (*data)[index-r23] / (*data)[index-r23-1];
 
 			type_ = type[index];
 			if (type_ != 0)
@@ -1003,7 +1005,8 @@ void decompressDataSeries_float_3D(float** data, size_t r1, size_t r2, size_t r3
 		{
 			/* Process Row-i data 0 */
 			index = kk*r23 + ii*r3;
-			pred2D = (*data)[index-r3] * (*data)[index-r23] / (*data)[index-r23-r3];
+			temp = (*data)[index-r3];
+			pred2D = temp * (*data)[index-r23] / (*data)[index-r23-r3];
 
 			type_ = type[index];
 			if (type_ != 0)
@@ -1060,10 +1063,11 @@ void decompressDataSeries_float_3D(float** data, size_t r1, size_t r2, size_t r3
 				index = kk*r23 + ii*r3 + jj;
 				//pred3D = (*data)[index-1] + (*data)[index-r3] + (*data)[index-r23]
 				//	- (*data)[index-r3-1] - (*data)[index-r23-r3] - (*data)[index-r23-1] + (*data)[index-r23-r3-1];
-				pred3D = (*data)[index-1] * (*data)[index-r3] * (*data)[index-r23] * (*data)[index-r23-r3-1] / ((*data)[index-r3-1] * (*data)[index-r23-r3] * (*data)[index-r23-1]);
+				temp = (*data)[index-1];
+				temp2 = (*data)[index-r3-1];
+				pred3D = temp * (*data)[index-r3] * (*data)[index-r23] * (*data)[index-r23-r3-1] / (temp2 * (*data)[index-r23-r3] * (*data)[index-r23-1]);
 
-				type_ = type[index];
-				if (type_ != 0)
+				type_ = type[index];				if (type_ != 0)
 				{
 					(*data)[index] = fabsf(pred3D) * precisionTable[type_];
 				}

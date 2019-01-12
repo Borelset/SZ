@@ -140,7 +140,6 @@ int main(int argc, char * argv[])
 
         float err = fabs(data[i] - ori_data[i]);
 
-
         if(ori_data[i]!=0)
         {
             if(fabs(ori_data[i])>1)
@@ -150,7 +149,6 @@ int main(int argc, char * argv[])
             if(maxpw_relerr<relerr){
                 maxpw_relerr = relerr;
             }
-
 
         }
 

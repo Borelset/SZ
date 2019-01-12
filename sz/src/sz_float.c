@@ -988,6 +988,8 @@ TightDataPointStorageF* SZ_compress_float_3D_MDQ(float *oriData, size_t r1, size
     }
     int state;
 
+    double temp, temp2;
+
 
     int hit=0, miss=0;
 
@@ -1044,7 +1046,8 @@ TightDataPointStorageF* SZ_compress_float_3D_MDQ(float *oriData, size_t r1, size
     /* Process Row-0 data 2 --> data r3-1 */
 	for (j = 2; j < r3; j++)
 	{
-		pred1D = P1[j-1] * P1[j-1] / P1[j-2];
+		temp = P1[j-1];
+		pred1D = temp * temp / P1[j-2];
 		curData = spaceFillingValue[j];
         predRelErrRatio = curData / pred1D;
 
@@ -1121,7 +1124,8 @@ TightDataPointStorageF* SZ_compress_float_3D_MDQ(float *oriData, size_t r1, size
 		for (j = 1; j < r3; j++)
 		{
 			index = i*r3+j;
-			pred2D = P1[index-1] * P1[index-r3] / P1[index-r3-1];
+			temp = P1[index-1];
+			pred2D = temp * P1[index-r3] / P1[index-r3-1];
 			float a = P1[index-1];
 			float b = P1[index-r3];
 			float c = P1[index-r3-1];
@@ -1207,7 +1211,8 @@ TightDataPointStorageF* SZ_compress_float_3D_MDQ(float *oriData, size_t r1, size
 		{
 			//index = k*r2*r3+j;
 			index ++;
-			pred2D = P0[j-1] * P1[j] / P1[j-1];
+			temp = P0[j-1];
+			pred2D = temp * P1[j] / P1[j-1];
 			curData = spaceFillingValue[index];
             predRelErrRatio = curData / pred2D;
 
@@ -1247,8 +1252,9 @@ TightDataPointStorageF* SZ_compress_float_3D_MDQ(float *oriData, size_t r1, size
 		{
 			/* Process Row-i data 0 */
 			index = k*r23 + i*r3;
-			index2D = i*r3;		
-			pred2D = P0[index2D-r3] * P1[index2D] / P1[index2D-r3];
+			index2D = i*r3;
+			temp = P0[index2D-r3];
+			pred2D = temp * P1[index2D] / P1[index2D-r3];
 			curData = spaceFillingValue[index];
             predRelErrRatio = curData / pred2D;
 
@@ -1290,7 +1296,10 @@ TightDataPointStorageF* SZ_compress_float_3D_MDQ(float *oriData, size_t r1, size
 				index ++;
 				index2D = i*r3 + j;
 				//pred3D = P0[index2D-1] * P0[index2D-r3] * P1[index2D] / P0[index2D-r3-1] / P1[index2D-r3] / P1[index2D-1] * P1[index2D-r3-1];
-                pred3D = P0[index2D-1] * P0[index2D-r3] * P1[index2D] * P1[index2D-r3-1] / (P0[index2D-r3-1] * P1[index2D-r3] * P1[index2D-1]);
+				temp = P0[index2D-1];
+				temp2 = P0[index2D-r3-1];
+                pred3D = temp * P0[index2D-r3] * P1[index2D] * P1[index2D-r3-1] / (temp2 * P1[index2D-r3] * P1[index2D-1]);
+
 				curData = spaceFillingValue[index];
                 predRelErrRatio = curData / pred3D;
 
@@ -2020,7 +2029,7 @@ int errBoundMode, double absErr_Bound, double relBoundRatio, double pwRelBoundRa
 void computeReqLength_float(double realPrecision, short radExpo, int* reqLength, float* medianValue)
 {
 	short reqExpo = getPrecisionReqLength_double(realPrecision);
-	*reqLength = 9+radExpo - reqExpo; //radExpo-reqExpo == reqMantiLength
+	*reqLength = 9- reqExpo; //radExpo-reqExpo == reqMantiLength
 	if(*reqLength<9)
 		*reqLength = 9;
 	if(*reqLength>32)
