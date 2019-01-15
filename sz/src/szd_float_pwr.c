@@ -17,6 +17,7 @@
 #include "Huffman.h"
 #include "sz_float_pwr.h"
 #include "utility.h"
+#include "TimeDuration.h"
 //#include "rw.h"
 //
 #pragma GCC diagnostic push

@@ -2110,6 +2110,7 @@ void SZ_compress_args_float_NoCkRngeNoGzip_3D_pwr_pre_log_alter(unsigned char** 
 	}
 	free(signs);
 
+
 	convertTDPStoFlatBytes_float(tdps, newByteData, outSize);
 	if(*outSize>3 + MetaDataByteLength + exe_params->SZ_SIZE_TYPE + 1 + sizeof(float)*dataLength)
 		SZ_compress_args_float_StoreOriData(oriData, dataLength, newByteData, outSize);

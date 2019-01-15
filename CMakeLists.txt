@@ -66,3 +66,4 @@ add_subdirectory (example)
 #add_subdirectory (test)
 
 add_executable(test1 MultiLevelCacheTableTest.cpp)
+target_link_libraries (test1 SZ m zlib zstd)

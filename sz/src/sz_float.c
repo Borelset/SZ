@@ -1845,8 +1845,6 @@ int SZ_compress_args_float(unsigned char** newByteData, float *oriData,
 size_t r5, size_t r4, size_t r3, size_t r2, size_t r1, size_t *outSize, 
 int errBoundMode, double absErr_Bound, double relBoundRatio, double pwRelBoundRatio)
 {
-    //struct ClockPoint clockPointStart;
-    //TimeDurationStart("Start", &clockPointStart);
 	confparams_cpr->errorBoundMode = errBoundMode;
 	if(errBoundMode==PW_REL)
 	{
@@ -1887,7 +1885,6 @@ int errBoundMode, double absErr_Bound, double relBoundRatio, double pwRelBoundRa
 	else
 		realPrecision = getRealPrecision_float(valueRangeSize, errBoundMode, absErr_Bound, relBoundRatio, &status);
 
-	//TimeDurationEnd(&clockPointStart);
 	if(valueRangeSize <= realPrecision)
 	{
 		SZ_compress_args_float_withinRange(newByteData, oriData, dataLength, outSize);
@@ -2001,8 +1998,6 @@ int errBoundMode, double absErr_Bound, double relBoundRatio, double pwRelBoundRa
 			status = SZ_DERR; //dimension error
 		}
 		//TimeDurationEnd(&clockPointMethod);
-		//struct ClockPoint clockPointPost;
-		//TimeDurationStart("post", &clockPointPost);
 		//Call Gzip to do the further compression.
 		if(confparams_cpr->szMode==SZ_BEST_SPEED)
 		{
@@ -2019,7 +2014,6 @@ int errBoundMode, double absErr_Bound, double relBoundRatio, double pwRelBoundRa
 			printf("Error: Wrong setting of confparams_cpr->szMode in the float compression.\n");
 			status = SZ_MERR; //mode error			
 		}
-		//TimeDurationEnd(&clockPointPost);
 	}
 	
 	return status;

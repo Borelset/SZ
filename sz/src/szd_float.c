@@ -17,6 +17,7 @@
 #include "szd_float_pwr.h"
 #include "szd_float_ts.h"
 #include "utility.h"
+#include "TimeDuration.h"
 
 /**
  * 
@@ -27,7 +28,7 @@ int SZ_decompress_args_float(float** newData, size_t r5, size_t r4, size_t r3, s
 {
 	int status = SZ_SCES;
 	size_t dataLength = computeDataLength(r5,r4,r3,r2,r1);
-	
+
 	//unsigned char* tmpBytes;
 	size_t targetUncompressSize = dataLength <<2; //i.e., *4
 	//tmpSize must be "much" smaller than dataLength
@@ -150,7 +151,7 @@ void decompressDataSeries_float_1D(float** data, size_t dataSeriesLength, TightD
 	int* type = (int*)malloc(dataSeriesLength*sizeof(int));
 	
 	HuffmanTree* huffmanTree = createHuffmanTree(tdps->stateNum);
-	decode_withTree(huffmanTree, tdps->typeArray, dataSeriesLength, type);
+	decode_withTree_alter(huffmanTree, tdps->typeArray, dataSeriesLength, type, tdps->max_bits);
 	SZ_ReleaseHuffman(huffmanTree);	
 
 	unsigned char preBytes[4];
@@ -272,7 +273,7 @@ void decompressDataSeries_float_2D(float** data, size_t r1, size_t r2, TightData
     int* type = (int*)malloc(dataSeriesLength*sizeof(int));
 
 	HuffmanTree* huffmanTree = createHuffmanTree(tdps->stateNum);
-	decode_withTree(huffmanTree, tdps->typeArray, dataSeriesLength, type);
+	decode_withTree_alter(huffmanTree, tdps->typeArray, dataSeriesLength, type, tdps->max_bits);
 	SZ_ReleaseHuffman(huffmanTree);	
 
 	unsigned char preBytes[4];
@@ -598,8 +599,8 @@ void decompressDataSeries_float_3D(float** data, size_t r1, size_t r2, size_t r3
 	}
 
 	HuffmanTree* huffmanTree = createHuffmanTree(tdps->stateNum);
-	decode_withTree(huffmanTree, tdps->typeArray, dataSeriesLength, type);
-	SZ_ReleaseHuffman(huffmanTree);	
+	decode_withTree_alter(huffmanTree, tdps->typeArray, dataSeriesLength, type, tdps->max_bits);
+	SZ_ReleaseHuffman(huffmanTree);
 
 	unsigned char preBytes[4];
 	unsigned char curBytes[4];

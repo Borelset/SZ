@@ -4,9 +4,40 @@
 
 #include <math.h>
 #include "MultiLevelCacheTableWideInterval.h"
+#include "Huffman.h"
 
+#define C   10
+#define R   10
+#define ArrayLength C*R
+#define StateNum 2048
 
 int main(){
+
+    HuffmanTree* huffmanTree1 = createHuffmanTree(StateNum);
+    int array[ArrayLength];
+    for(int i=0; i<R; i++){
+        int number = rand()%StateNum;
+        for(int j=0; j<C; j++){
+            array[i*10+j] = number;
+        }
+    }
+    for(int i=0; i<ArrayLength; i++){
+        printf("%d ", array[i]);
+    }
+    printf("\n");
+    unsigned char * buffer = (unsigned char*)malloc(sizeof(array));
+    size_t hsize;
+    int maxBits = encode_withTree_alter(huffmanTree1, array, ArrayLength, &buffer, &hsize);
+    SZ_ReleaseHuffman(huffmanTree1);
+
+    size_t tsize = sizeof(array)/ sizeof(int);
+    int * array2 = (int*)malloc(sizeof(array));
+    HuffmanTree* huffmanTree2 = createHuffmanTree(StateNum);
+    decode_withTree_alter(huffmanTree2, buffer, tsize, array2, maxBits);
+    SZ_ReleaseHuffman(huffmanTree2);
+    for(int i=0; i<tsize; i++){
+        printf("%d ", array2[i]);
+    }
 
     /*
     FILE* file = fopen("testFile", "w");

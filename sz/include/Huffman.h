@@ -35,6 +35,7 @@ typedef struct HuffmanTree {
 	unsigned long **code;
 	unsigned char *cout;
 	int n_inode; //n_inode is for decompression
+	int maxBitCount;
 } HuffmanTree;
 
 HuffmanTree* createHuffmanTree(int stateNum);
@@ -49,6 +50,7 @@ void init(HuffmanTree *huffmanTree, int *s, size_t length);
 void init_static(HuffmanTree *huffmanTree, int *s, size_t length);
 void encode(HuffmanTree *huffmanTree, int *s, size_t length, unsigned char *out, size_t *outSize);
 void decode(unsigned char *s, size_t targetLength, node t, int *out);
+void decode_alter(unsigned char *s, size_t targetLength, node t, int *out, int maxBits);
 void pad_tree_uchar(HuffmanTree* huffmanTree, unsigned char* L, unsigned char* R, unsigned int* C, unsigned char* t, unsigned int i, node root);
 void pad_tree_ushort(HuffmanTree* huffmanTree, unsigned short* L, unsigned short* R, unsigned int* C, unsigned char* t, unsigned int i, node root);
 void pad_tree_uint(HuffmanTree* huffmanTree, unsigned int* L, unsigned int* R, unsigned int* C, unsigned char* t, unsigned int i, node root);
@@ -59,8 +61,11 @@ void unpad_tree_uint(HuffmanTree* huffmanTree, unsigned int* L, unsigned int* R,
 node reconstruct_HuffTree_from_bytes_anyStates(HuffmanTree *huffmanTree, unsigned char* bytes, int nodeCount);
 
 void encode_withTree(HuffmanTree* huffmanTree, int *s, size_t length, unsigned char **out, size_t *outSize);
+int encode_withTree_alter(HuffmanTree* huffmanTree, int *s, size_t length, unsigned char **out, size_t *outSize);
 void encode_withTree_static(HuffmanTree* huffmanTree, int *s, size_t length, unsigned char **out, size_t *outSize);
 void decode_withTree(HuffmanTree* huffmanTree, unsigned char *s, size_t targetLength, int *out);
+
+void decode_withTree_alter(HuffmanTree* huffmanTree, unsigned char *s, size_t targetLength, int *out, int maxBits);
 
 void SZ_ReleaseHuffman(HuffmanTree* huffmanTree);
 
