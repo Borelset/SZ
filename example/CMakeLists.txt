@@ -19,8 +19,8 @@ target_link_libraries (testdouble_decompress SZ m zlib zstd)
 add_executable (sz sz.c)
 target_link_libraries (sz SZ m zlib zstd)
 
-add_executable (opencl_test opencl_test)
-target_link_libraries (opencl_test SZ m zlib zstd ${OpenCL_LIBRARIES})
+#add_executable (opencl_test opencl_test)
+#target_link_libraries (opencl_test SZ m zlib zstd ${OpenCL_LIBRARIES})
 
 install (TARGETS testint_compress testint_decompress testfloat_compress testfloat_decompress
 	testdouble_compress testdouble_decompress sz

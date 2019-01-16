@@ -1,3 +1,4 @@
+/*
 #include "sz_opencl.h"
 #include "sz.h"
 #include <algorithm>
@@ -139,21 +140,23 @@ extern "C"
       kernel.setArg(0, d_a);
       kernel.setArg(1, d_b);
       kernel.setArg(2, d_c);
+      */
 
-      state->queue.enqueueWriteBuffer(d_a, /*blocking*/ CL_TRUE, /*offset*/ 0,
-                                      /*size*/ sizeof(cl_float) * size,
-                                      h_a.data());
-      state->queue.enqueueWriteBuffer(d_b, /*blocking*/ CL_TRUE, /*offset*/ 0,
-                                      /*size*/ sizeof(cl_float) * size,
-                                      h_b.data());
-      state->queue.enqueueNDRangeKernel(kernel, /*offset*/ cl::NullRange,
-                                        /*global*/ cl::NDRange(size),
-                                        cl::NullRange);
-      state->queue.finish();
-      state->queue.enqueueReadBuffer(d_c, /*blocking*/ CL_TRUE, /*offset*/ 0,
-                                     /*size*/ sizeof(cl_float) * size,
-                                     h_c.data());
+//      state->queue.enqueueWriteBuffer(d_a, /*blocking*/ CL_TRUE, /*offset*/ 0,
+//                                      /*size*/ sizeof(cl_float) * size,
+//                                      h_a.data());
+//      state->queue.enqueueWriteBuffer(d_b, /*blocking*/ CL_TRUE, /*offset*/ 0,
+//                                      /*size*/ sizeof(cl_float) * size,
+//                                      h_b.data());
+//      state->queue.enqueueNDRangeKernel(kernel, /*offset*/ cl::NullRange,
+//                                        /*global*/ cl::NDRange(size),
+//                                        cl::NullRange);
+//      state->queue.finish();
+//      state->queue.enqueueReadBuffer(d_c, /*blocking*/ CL_TRUE, /*offset*/ 0,
+//                                     /*size*/ sizeof(cl_float) * size,
+//                                     h_c.data());
 
+/*
       if (std::equal(std::begin(h_c), std::end(h_c), std::begin(verify),
                      std::end(verify))) {
         return SZ_SCES;
@@ -172,3 +175,4 @@ unsigned char * sz_compress_float3d_opencl(float *oriData, size_t r1, size_t r2,
 }
 
 }
+*/
