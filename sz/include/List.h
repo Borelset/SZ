@@ -15,8 +15,12 @@ struct ListNode{
 
 struct List{
     struct ListNode* head;
-    int count = 0;
+    int count;
 };
+
+void ListInit(struct List* list){
+    list->count = 0;
+}
 
 void ListDestroy(struct List* list){
     struct ListNode* ptr = list->head;
@@ -42,7 +46,7 @@ void* ListGet(struct List* list){
 }
 
 void ListPut(struct List* list, void* ptr){
-    struct ListNode* node = new struct ListNode();
+    struct ListNode* node = (struct ListNode*)malloc(sizeof(struct ListNode));
 
     //setting
     node->ptr = ptr;

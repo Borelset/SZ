@@ -13,6 +13,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <math.h>
+#include <TaskDispatcher.h>
+#include <Worker.h>
 #include "sz.h"
 #include "CompressElement.h"
 #include "DynamicByteArray.h"
@@ -714,11 +716,32 @@ TightDataPointStorageF* SZ_compress_float_2D_MDQ(float *oriData, size_t r1, size
 #endif		
 	}
 
+
+	struct TaskDispatcher taskDispatcher;
+	struct SZParams szParams;
+	szParams.reqLength = reqLength;
+	szParams.reqBytesLength = reqBytesLength;
+	szParams.resiBitsLength = resiBitsLength;
+	szParams.medianValue = medianValue;
+	szParams.realPrecision = realPrecision;
+	szParams.intvRadius = exe_params->intvRadius;
+	TaskDispatcherInit(&taskDispatcher, r1, P1, r2, type, spaceFillingValue, szParams);
+	struct Worker worker1, worker2, worker3, worker4;
+	WorkerInit(&worker1, &taskDispatcher, 1);
+	WorkerInit(&worker2, &taskDispatcher, 1);
+	WorkerInit(&worker3, &taskDispatcher, 1);
+	WorkerInit(&worker4, &taskDispatcher, 1);
+	WorkerWait(&worker1);
+	WorkerWait(&worker2);
+	WorkerWait(&worker3);
+	WorkerWait(&worker4);
+
+
 	/* Process Row-1 --> Row-r1-1 */
+/*
 	size_t index;
 	for (i = 1; i < r1; i++)
-	{	
-		/* Process row-i data 0 */
+	{
 		index = i*r2;
 		pred1D = P1[0];
 		curData = spaceFillingValue[index];
@@ -757,8 +780,7 @@ TightDataPointStorageF* SZ_compress_float_2D_MDQ(float *oriData, size_t r1, size
 		if(confparams_cpr->szMode == SZ_TEMPORAL_COMPRESSION)
 			decData[index] = P0[0];
 #endif
-									
-		/* Process row-i data 1 --> r2-1*/
+
 		for (j = 1; j < r2; j++)
 		{
 			index = i*r2+j;
@@ -807,11 +829,52 @@ TightDataPointStorageF* SZ_compress_float_2D_MDQ(float *oriData, size_t r1, size
 		P1 = P0;
 		P0 = Pt;
 	}
+	*/
+
+
+/*
+	FILE* file1 = fopen("typeLog1", "w");
+	FILE* file2 = fopen("typeLog2", "w");
+	FILE* file3 = fopen("typeLog3", "w");
+	FILE* file4 = fopen("typeLog4", "w");
+	FILE* file5 = fopen("typeLog5", "w");
+	FILE* file6 = fopen("typeLog6", "w");
+	FILE* file7 = fopen("typeLog7", "w");
+	FILE* file8 = fopen("typeLog8", "w");
+	FILE* file9 = fopen("typeLog9", "w");
+	FILE* file10 = fopen("typeLog10", "w");
+	FILE* file[10] = {file1, file2, file3, file4, file5, file6, file7, file8, file9, file10};
+	char buffer[1024];
+	for(int m=0; m<10; m++){
+		for(int n=0; n<3600*180; n++){
+			sprintf(buffer, "%d\n", type[m*648000+n]);
+			fwrite(buffer, 1, strlen(buffer), file[m]);
+		}
+	}
+ */
+
 	
 	if(r2!=1)
 		free(P0);
-	free(P1);			
-	size_t exactDataNum = exactLeadNumArray->size;
+	free(P1);
+
+	for(int i=0; i<taskDispatcher.taskCount-1; i++){
+		DynamicIntArray* l = taskDispatcher.leadArray[i];
+		DynamicByteArray* b = taskDispatcher.byteArray[i];
+		DynamicIntArray* r = taskDispatcher.resiArray[i];
+		for(int j=0; j<l->size; j++){
+			addDIA_Data(exactLeadNumArray, l->array[j]);
+		}
+		for(int j=0; j<b->size; j++){
+			addDBA_Data(exactMidByteArray, b->array[j]);
+		}
+		for(int j=0; j<r->size; j++){
+			addDIA_Data(resiBitArray, r->array[j]);
+		}
+	}
+
+
+    size_t exactDataNum = exactLeadNumArray->size;
 	
 	TightDataPointStorageF* tdps;
 			

@@ -65,8 +65,10 @@ void new_LossyCompressionElement(LossyCompressionElement *lce, int leadingNum, u
 		int intMidBytes_Length, int resiMidBitsLength, int resiBits);
 void updateLossyCompElement_Double(unsigned char* curBytes, unsigned char* preBytes, 
 		int reqBytesLength, int resiBitsLength,  LossyCompressionElement *lce);
-void updateLossyCompElement_Float(unsigned char* curBytes, unsigned char* preBytes, 
+void updateLossyCompElement_Float(unsigned char* curBytes, unsigned char* preBytes,
 		int reqBytesLength, int resiBitsLength,  LossyCompressionElement *lce);
+void updateLossyCompElement_Float_first(unsigned char* curBytes, unsigned char* preBytes,
+										int reqBytesLength, int resiBitsLength,  LossyCompressionElement *lce);
 
 #ifdef __cplusplus
 }

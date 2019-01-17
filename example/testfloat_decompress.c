@@ -145,8 +145,10 @@ int main(int argc, char * argv[])
 			relerr = err/ori_data[i];
 		else
 			relerr = err;
-		if(maxpw_relerr<relerr)
-			maxpw_relerr = relerr;
+		if(maxpw_relerr<relerr){
+            maxpw_relerr = relerr;
+		}
+
         }
 
 	if (diffMax < err)

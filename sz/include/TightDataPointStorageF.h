@@ -14,7 +14,7 @@
 extern "C" {
 #endif
 
-#include <stdio.h> 
+#include <stdio.h>
 
 typedef struct TightDataPointStorageF
 {
@@ -38,7 +38,7 @@ typedef struct TightDataPointStorageF
 
 	unsigned char* typeArray; //its size is dataSeriesLength/4 (or xxx/4+1) 
 	size_t typeArray_size;
-	
+
 	unsigned char* leadNumArray; //its size is exactDataNum/4 (or exactDataNum/4+1)
 	size_t leadNumArray_size;
 	

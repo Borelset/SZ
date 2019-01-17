@@ -7,17 +7,40 @@
 
 struct LineCache{
     int index;
+    float * readCache;
+    int * typeCache;
+    float * dataCache;
 };
+
+void LineCacheInit(struct LineCache* lineCache){
+    lineCache->readCache = NULL;
+    lineCache->typeCache = NULL;
+    lineCache->dataCache = NULL;
+}
 
 struct LCSourcePool{
     struct List idle;
-    int counter = 0;
+    int counter;
+    int readCacheLength;
 };
 
-void LCSourcePoolDeinit(struct LCSourcePool* lcSourcePool){
+void LineCacheDestroy(struct LineCache* lineCache){
+    if(lineCache->readCache){
+        free(lineCache->readCache);
+    }
+}
+
+void LCSourcePoolInit(struct LCSourcePool* lcSourcePool, int readCacheLength){
+    lcSourcePool->readCacheLength = readCacheLength;
+    ListInit(&lcSourcePool->idle);
+    lcSourcePool->counter = 0;
+}
+
+void LCSourcePoolDestroy(struct LCSourcePool* lcSourcePool){
     struct LineCache* lineCache;
     for(int i=0; i<lcSourcePool->idle.count; i++){
         lineCache = (struct LineCache*)ListGet(&lcSourcePool->idle);
+        LineCacheDestroy(lineCache);
         free(lineCache);
     }
     ListDestroy(&lcSourcePool->idle);
@@ -28,7 +51,9 @@ struct LineCache* LCSourcePoolGet(struct LCSourcePool* lcSourcePool){
     if(lcSourcePool->idle.count){
         ptr = (struct LineCache*)ListGet(&lcSourcePool->idle);
     }else{
-        ptr = new struct LineCache();
+        ptr = (struct LineCache*)malloc(sizeof(struct LineCache));
+        LineCacheInit(ptr);
+        ptr->readCache = (float*)malloc(sizeof(float) * lcSourcePool->readCacheLength);
         ptr->index = lcSourcePool->counter++;
     }
     return ptr;
