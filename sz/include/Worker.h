@@ -1,5 +1,5 @@
 //
-// Created by xdnzx on 2019/1/16.
+// Created by borelset on 2019/1/16.
 //
 
 #ifndef SZ_WORKER_H
@@ -14,6 +14,9 @@
 #include "dataCompression.h"
 
 #define CheckInterval 180
+
+#define WorkerType2D 1
+#define WorkerType3D 2
 
 void* WorkerLoop1(void* args){
     struct TaskDispatcher* taskDispatcher = (struct TaskDispatcher*)args;
@@ -174,9 +177,9 @@ struct Worker{
 };
 
 void WorkerInit(struct Worker* worker, struct TaskDispatcher* taskDispatcher, int mode){
-    if(mode){
+    if(mode == WorkerType2D){
         pthread_create(&worker->pid, NULL, WorkerLoop1, taskDispatcher);
-    }else{
+    }else if (mode == WorkerType3D){
         pthread_create(&worker->pid, NULL, WorkerLoop2, taskDispatcher);
     }
 

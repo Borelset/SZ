@@ -1,5 +1,5 @@
 //
-// Created by xdnzx on 2019/1/16.
+// Created by borelset on 2019/1/16.
 //
 
 #ifndef SZ_LIST_H
