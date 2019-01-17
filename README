@@ -1,5 +1,11 @@
 fork from SZ master at version : bea6aae5e6881716f778b97288f2b8222e93e3bd
-Parallelism edition  
+Model B 
+shift interval edition  
+please add 
+```
+plus_bits = 3
+```
+in config file  
 
 
 --------SZ (version 2.0.0): Error-bounded Lossy Compressor for HPC Data--------
