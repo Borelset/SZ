@@ -14,6 +14,7 @@
 struct Task{
     int lineIndex;
     int lineLength;
+    int width_3D;
     struct ConcurrentController* concurrentController;
     struct LineCache* lineCache;
     struct ConcurrentController* prevConcurrentController;
@@ -37,12 +38,14 @@ struct SZParams{
     int reqLength;
     int reqBytesLength;
     int resiBitsLength;
+    int parallelismCheckInterval;
 };
 
 struct TaskDispatcher{
     int taskCount;
     int lastest;
     int lineLength;
+    int width_3d;
     pthread_mutex_t mutex;
     struct RegisterTableEntry* registerTable;
     struct CCSourcePool ccSourcePool;
@@ -83,6 +86,35 @@ void TaskDispatcherInit(struct TaskDispatcher* taskDispatcher, int count, float*
     taskDispatcher->registerTable[0].concurrentController->pos = lineLength*2;
 }
 
+void TaskDispatcherInit3D(struct TaskDispatcher* taskDispatcher, int layer, float* firstLine, int layerLength, int width, int * typeArray, float *floatArray, struct SZParams szParams){
+    pthread_mutex_init(&taskDispatcher->mutex, NULL);
+    LCSourcePoolInit(&taskDispatcher->lcSourcePool, layerLength);
+    CCSourcePoolInit(&taskDispatcher->ccSourcePool);
+    taskDispatcher->lastest = 1;
+    taskDispatcher->lineLength = layerLength;
+    taskDispatcher->taskCount = layer;
+    taskDispatcher->width_3d = width;
+    taskDispatcher->registerTable = (struct RegisterTableEntry*)malloc(layer * sizeof(struct TaskDispatcher));
+
+    taskDispatcher->typeArray = typeArray;
+    taskDispatcher->floatArray = floatArray;
+    taskDispatcher->szParams = szParams;
+
+    taskDispatcher->leadArray = (DynamicIntArray**)malloc(sizeof(DynamicIntArray*) * (layer-1));
+    taskDispatcher->byteArray = (DynamicByteArray**)malloc(sizeof(DynamicByteArray*) * (layer-1));
+    taskDispatcher->resiArray = (DynamicIntArray**)malloc(sizeof(DynamicIntArray*) * (layer-1));
+    for(int i=0; i<layer-1; i++){
+        new_DIA(&taskDispatcher->leadArray[i], 1024);
+        new_DBA(&taskDispatcher->byteArray[i], 1024);
+        new_DIA(&taskDispatcher->resiArray[i], 1024);
+    }
+
+    taskDispatcher->registerTable[0].lineCache = LCSourcePoolGet(&taskDispatcher->lcSourcePool);
+    memcpy(taskDispatcher->registerTable[0].lineCache->readCache, firstLine, sizeof(float) * taskDispatcher->lineLength);
+    taskDispatcher->registerTable[0].concurrentController = CCSourcePoolGet(&taskDispatcher->ccSourcePool);
+    taskDispatcher->registerTable[0].concurrentController->pos = layerLength*2;
+}
+
 void TaskDispatcherDestroy(struct TaskDispatcher* taskDispatcher){
     for(int i=0; i<taskDispatcher->taskCount-1; i++){
         free_DIA(taskDispatcher->leadArray[i]);
@@ -114,6 +146,7 @@ struct Task TaskDispatcherGet(struct TaskDispatcher* taskDispatcher){
     result.lineCache->typeCache = &taskDispatcher->typeArray[ taskDispatcher->lineLength * result.lineIndex ];
     result.lineCache->dataCache = &taskDispatcher->floatArray[ taskDispatcher->lineLength * result.lineIndex ];
     result.lineLength = taskDispatcher->lineLength;
+    result.width_3D = taskDispatcher->width_3d;
 
     taskDispatcher->registerTable[ result.lineIndex ].concurrentController = result.concurrentController;
     taskDispatcher->registerTable[ result.lineIndex ].lineCache = result.lineCache;

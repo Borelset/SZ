@@ -262,6 +262,8 @@ typedef struct sz_params
 	int predictionMode;
 	
 	int randomAccess;
+
+	int parallelism_check_interval;
 } sz_params;
 
 typedef struct sz_metadata

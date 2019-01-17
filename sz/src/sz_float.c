@@ -725,6 +725,7 @@ TightDataPointStorageF* SZ_compress_float_2D_MDQ(float *oriData, size_t r1, size
 	szParams.medianValue = medianValue;
 	szParams.realPrecision = realPrecision;
 	szParams.intvRadius = exe_params->intvRadius;
+	szParams.parallelismCheckInterval = confparams_cpr->parallelism_check_interval;
 	TaskDispatcherInit(&taskDispatcher, r1, P1, r2, type, spaceFillingValue, szParams);
 	struct Worker worker1, worker2, worker3, worker4;
 	WorkerInit(&worker1, &taskDispatcher, 1);
@@ -997,6 +998,8 @@ TightDataPointStorageF* SZ_compress_float_3D_MDQ(float *oriData, size_t r1, size
 	FloatValueCompressElement *vce = (FloatValueCompressElement*)malloc(sizeof(FloatValueCompressElement));
 	LossyCompressionElement *lce = (LossyCompressionElement*)malloc(sizeof(LossyCompressionElement));
 
+	struct timeval t0, t1;
+	gettimeofday(&t0, NULL);
 
 	///////////////////////////	Process layer-0 ///////////////////////////
 	/* Process Row-0 data 0*/
@@ -1182,13 +1185,30 @@ TightDataPointStorageF* SZ_compress_float_3D_MDQ(float *oriData, size_t r1, size
 #endif			
 		}
 	}
+/*
+	struct TaskDispatcher taskDispatcher;
+	struct SZParams szParams;
+	szParams.reqLength = reqLength;
+	szParams.reqBytesLength = reqBytesLength;
+	szParams.resiBitsLength = resiBitsLength;
+	szParams.medianValue = medianValue;
+	szParams.realPrecision = realPrecision;
+	szParams.intvRadius = exe_params->intvRadius;
+	szParams.parallelismCheckInterval = confparams_cpr->parallelism_check_interval;
+	TaskDispatcherInit3D(&taskDispatcher, r1, P1, r2*r3, r3, type, spaceFillingValue, szParams);
+	struct Worker worker1, worker2, worker3, worker4;
+	WorkerInit(&worker1, &taskDispatcher, WorkerType3D);
+	WorkerInit(&worker2, &taskDispatcher, WorkerType3D);
+	WorkerInit(&worker3, &taskDispatcher, WorkerType3D);
+	WorkerInit(&worker4, &taskDispatcher, WorkerType3D);
+	WorkerWait(&worker4);
+*/
 
 
 	///////////////////////////	Process layer-1 --> layer-r1-1 ///////////////////////////
 
 	for (k = 1; k < r1; k++)
 	{
-		/* Process Row-0 data 0*/
 		index = k*r23;
 		pred1D = P1[0];
 		curData = spaceFillingValue[index];
@@ -1228,7 +1248,6 @@ TightDataPointStorageF* SZ_compress_float_3D_MDQ(float *oriData, size_t r1, size
 			decData[index] = P0[0];
 #endif
 
-	    /* Process Row-0 data 1 --> data r3-1 */
 		for (j = 1; j < r3; j++)
 		{
 			//index = k*r2*r3+j;
@@ -1271,11 +1290,9 @@ TightDataPointStorageF* SZ_compress_float_3D_MDQ(float *oriData, size_t r1, size
 #endif			
 		}
 
-	    /* Process Row-1 --> Row-r2-1 */
 		size_t index2D;
 		for (i = 1; i < r2; i++)
 		{
-			/* Process Row-i data 0 */
 			index = k*r23 + i*r3;
 			index2D = i*r3;		
 			pred2D = P0[index2D-r3] + P1[index2D] - P1[index2D-r3];
@@ -1315,7 +1332,6 @@ TightDataPointStorageF* SZ_compress_float_3D_MDQ(float *oriData, size_t r1, size
 				decData[index] = P0[index2D];
 #endif			
 
-			/* Process Row-i data 1 --> data r3-1 */
 			for (j = 1; j < r3; j++)
 			{
 //				if(k==63&&i==43&&j==27)
@@ -1368,9 +1384,37 @@ TightDataPointStorageF* SZ_compress_float_3D_MDQ(float *oriData, size_t r1, size
 		P1 = P0;
 		P0 = Pt;
 	}
+
+
 	if(r23!=1)
 		free(P0);
 	free(P1);
+/*
+	FILE* file = fopen("typeArray", "w");
+	char buffer[1024];
+	for(int i=0; i<dataLength; i++){
+	    sprintf(buffer, "%d\n", type[i]);
+	    fwrite(buffer, 1, strlen(buffer), file);
+	}
+*/
+    gettimeofday(&t1, NULL);
+    printf("duration:%ld\n", (t1.tv_sec - t0.tv_sec)*1000000 + t1.tv_usec - t0.tv_usec);
+/*
+	for(int i=0; i<taskDispatcher.taskCount-1; i++){
+		DynamicIntArray* l = taskDispatcher.leadArray[i];
+		DynamicByteArray* b = taskDispatcher.byteArray[i];
+		DynamicIntArray* r = taskDispatcher.resiArray[i];
+		for(int j=0; j<l->size; j++){
+			addDIA_Data(exactLeadNumArray, l->array[j]);
+		}
+		for(int j=0; j<b->size; j++){
+			addDBA_Data(exactMidByteArray, b->array[j]);
+		}
+		for(int j=0; j<r->size; j++){
+			addDIA_Data(resiBitArray, r->array[j]);
+		}
+	}
+*/
 	size_t exactDataNum = exactLeadNumArray->size;
 
 	TightDataPointStorageF* tdps;
