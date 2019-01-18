@@ -727,15 +727,11 @@ TightDataPointStorageF* SZ_compress_float_2D_MDQ(float *oriData, size_t r1, size
 	szParams.intvRadius = exe_params->intvRadius;
 	szParams.parallelismCheckInterval = confparams_cpr->parallelism_check_interval;
 	TaskDispatcherInit(&taskDispatcher, r1, P1, r2, type, spaceFillingValue, szParams);
-	struct Worker worker1, worker2, worker3, worker4;
-	WorkerInit(&worker1, &taskDispatcher, 1);
-	WorkerInit(&worker2, &taskDispatcher, 1);
-	WorkerInit(&worker3, &taskDispatcher, 1);
-	WorkerInit(&worker4, &taskDispatcher, 1);
-	WorkerWait(&worker1);
-	WorkerWait(&worker2);
-	WorkerWait(&worker3);
-	WorkerWait(&worker4);
+    struct Worker workers[confparams_cpr->thread_num];
+    for(int i=0; i<confparams_cpr->thread_num; i++){
+        WorkerInit(&workers[i], &taskDispatcher, WorkerType3D);
+    }
+    WorkerWait(&workers[confparams_cpr->thread_num-1]);
 
 
 	/* Process Row-1 --> Row-r1-1 */
@@ -1185,7 +1181,7 @@ TightDataPointStorageF* SZ_compress_float_3D_MDQ(float *oriData, size_t r1, size
 #endif			
 		}
 	}
-/*
+
 	struct TaskDispatcher taskDispatcher;
 	struct SZParams szParams;
 	szParams.reqLength = reqLength;
@@ -1196,17 +1192,16 @@ TightDataPointStorageF* SZ_compress_float_3D_MDQ(float *oriData, size_t r1, size
 	szParams.intvRadius = exe_params->intvRadius;
 	szParams.parallelismCheckInterval = confparams_cpr->parallelism_check_interval;
 	TaskDispatcherInit3D(&taskDispatcher, r1, P1, r2*r3, r3, type, spaceFillingValue, szParams);
-	struct Worker worker1, worker2, worker3, worker4;
-	WorkerInit(&worker1, &taskDispatcher, WorkerType3D);
-	WorkerInit(&worker2, &taskDispatcher, WorkerType3D);
-	WorkerInit(&worker3, &taskDispatcher, WorkerType3D);
-	WorkerInit(&worker4, &taskDispatcher, WorkerType3D);
-	WorkerWait(&worker4);
-*/
+	struct Worker workers[confparams_cpr->thread_num];
+	for(int i=0; i<confparams_cpr->thread_num; i++){
+        WorkerInit(&workers[i], &taskDispatcher, WorkerType3D);
+	}
+	WorkerWait(&workers[confparams_cpr->thread_num-1]);
+
 
 
 	///////////////////////////	Process layer-1 --> layer-r1-1 ///////////////////////////
-
+/*
 	for (k = 1; k < r1; k++)
 	{
 		index = k*r23;
@@ -1384,22 +1379,23 @@ TightDataPointStorageF* SZ_compress_float_3D_MDQ(float *oriData, size_t r1, size
 		P1 = P0;
 		P0 = Pt;
 	}
-
+*/
 
 	if(r23!=1)
 		free(P0);
 	free(P1);
-/*
+
+	/*
 	FILE* file = fopen("typeArray", "w");
 	char buffer[1024];
 	for(int i=0; i<dataLength; i++){
 	    sprintf(buffer, "%d\n", type[i]);
 	    fwrite(buffer, 1, strlen(buffer), file);
 	}
-*/
+	 */
+
     gettimeofday(&t1, NULL);
     printf("duration:%ld\n", (t1.tv_sec - t0.tv_sec)*1000000 + t1.tv_usec - t0.tv_usec);
-/*
 	for(int i=0; i<taskDispatcher.taskCount-1; i++){
 		DynamicIntArray* l = taskDispatcher.leadArray[i];
 		DynamicByteArray* b = taskDispatcher.byteArray[i];
@@ -1414,7 +1410,6 @@ TightDataPointStorageF* SZ_compress_float_3D_MDQ(float *oriData, size_t r1, size
 			addDIA_Data(resiBitArray, r->array[j]);
 		}
 	}
-*/
 	size_t exactDataNum = exactLeadNumArray->size;
 
 	TightDataPointStorageF* tdps;

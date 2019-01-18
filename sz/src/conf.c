@@ -329,6 +329,8 @@ int SZ_ReadConf(const char* sz_cfgFile) {
 		confparams_cpr->pw_relBoundRatio = (double)iniparser_getdouble(ini, "PARAMETER:pw_relBoundRatio", 0);
 		confparams_cpr->segment_size = (int)iniparser_getint(ini, "PARAMETER:segment_size", 0);
 		confparams_cpr->parallelism_check_interval = (int)iniparser_getint(ini, "PARAMETER:parallelism_check_interval", 10);
+		confparams_cpr->thread_num = (int)iniparser_getint(ini, "PARAMETER:thread_num", 1);
+
 		
 		modeBuf = iniparser_getstring(ini, "PARAMETER:pwr_type", "MIN");
 		

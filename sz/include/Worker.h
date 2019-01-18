@@ -8,12 +8,11 @@
 #include <stdio.h>
 #include <syscall.h>
 #include <zconf.h>
+#include <stdbool.h>
 #include "TaskDispatcher.h"
 #include "math.h"
 #include "CompressElement.h"
 #include "dataCompression.h"
-
-#define CheckInterval 180
 
 #define WorkerType2D 1
 #define WorkerType3D 2
@@ -307,7 +306,6 @@ void WorkerInit(struct Worker* worker, struct TaskDispatcher* taskDispatcher, in
     }else if (mode == WorkerType3D){
         pthread_create(&worker->pid, NULL, WorkerLoop3D, taskDispatcher);
     }
-
 }
 
 void WorkerWait(struct Worker* worker){

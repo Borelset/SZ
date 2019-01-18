@@ -24,6 +24,7 @@
 #include "zlib.h"
 #include "rw.h"
 #include "utility.h"
+#include "WorkerLog.h"
 
 void compute_segment_precisions_float_1D(float *oriData, size_t dataLength, float* pwrErrBound, unsigned char* pwrErrBoundBytes, double globalPrecision)
 {
@@ -1921,6 +1922,39 @@ void SZ_compress_args_float_NoCkRngeNoGzip_3D_pwr_pre_log(unsigned char** newByt
     else max_abs_log_data = fabs(log2(fabs(min))) > fabs(log2(fabs(max))) ? fabs(log2(fabs(min))) : fabs(log2(fabs(max)));
     float min_log_data = max_abs_log_data;
 	bool positive = true;
+
+	int threadNum = confparams_cpr->thread_num;
+	struct WorkerLog workers[threadNum];
+	struct LogParams logParams[threadNum];
+	int segLength = dataLength/threadNum;
+	for(int i=0; i<threadNum; i++){
+		logParams[i].input = oriData;
+		logParams[i].output = log_data;
+		logParams[i].signs = signs;
+		logParams[i].start = segLength*i;
+		if(i == threadNum-1){
+			logParams[i].end = dataLength-1;
+		}else{
+			logParams[i].end = segLength*(i+1)-1;
+		}
+		WorkerInitLog(&workers[i], &logParams[i]);
+	}
+	struct LogResult* logResult[threadNum];
+	for(int i=0; i<threadNum; i++){
+		WorkerWaitLog(&workers[i], &logResult[i]);
+	}
+	for(int i=0; i<threadNum; i++){
+		if(!logResult[i]->positive){
+			positive = false;
+		}
+		if(logResult[i]->maxLog > max_abs_log_data){
+			max_abs_log_data = logResult[i]->maxLog;
+		}
+		if(logResult[i]->minLog < min_log_data){
+			min_log_data = logResult[i]->minLog;
+		}
+	}
+	/*
 	for(size_t i=0; i<dataLength; i++){
 		if(oriData[i] < 0){
 			signs[i] = 1;
@@ -1935,16 +1969,28 @@ void SZ_compress_args_float_NoCkRngeNoGzip_3D_pwr_pre_log(unsigned char** newByt
 			if(log_data[i] < min_log_data) min_log_data = log_data[i];
 		}
 	}
+	 */
 
 	float valueRangeSize, medianValue_f;
 	computeRangeSize_float(log_data, dataLength, &valueRangeSize, &medianValue_f);	
 	if(fabs(min_log_data) > max_abs_log_data) max_abs_log_data = fabs(min_log_data);
 	double realPrecision = log2(1.0 + pwrErrRatio) - max_abs_log_data * 1.2e-7;
+
+	for(int i=0; i<threadNum; i++){
+		logParams[i].realPrecision = realPrecision;
+		logParams[i].zeroValue = min_log_data;
+		WorkerInitTransZero(&workers[i], &logParams[i]);
+	}
+	for(int i=0; i<threadNum; i++){
+		WorkerWaitTransZero(&workers[i]);
+	}
+	/*
 	for(size_t i=0; i<dataLength; i++){
 		if(oriData[i] == 0){
 			log_data[i] = min_log_data - 2.0001*realPrecision;
 		}
 	}
+	 */
 
     TightDataPointStorageF* tdps = SZ_compress_float_3D_MDQ(log_data, r1, r2, r3, realPrecision, valueRangeSize, medianValue_f);
     tdps->minLogValue = min_log_data - 1.0001*realPrecision;

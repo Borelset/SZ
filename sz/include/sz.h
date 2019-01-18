@@ -264,6 +264,7 @@ typedef struct sz_params
 	int randomAccess;
 
 	int parallelism_check_interval;
+	int thread_num;
 } sz_params;
 
 typedef struct sz_metadata
