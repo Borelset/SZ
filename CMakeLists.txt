@@ -34,7 +34,7 @@ endif ()
 #	add_definitions(-DHAVE_OPENCL)
 #endif()
 
-#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
 
 find_program(TAGS ctags)
 if(TAGS)

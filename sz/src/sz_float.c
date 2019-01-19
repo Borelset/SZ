@@ -1196,7 +1196,10 @@ TightDataPointStorageF* SZ_compress_float_3D_MDQ(float *oriData, size_t r1, size
 	for(int i=0; i<confparams_cpr->thread_num; i++){
         WorkerInit(&workers[i], &taskDispatcher, WorkerType3D);
 	}
-	WorkerWait(&workers[confparams_cpr->thread_num-1]);
+	for(int i=confparams_cpr->thread_num-1; i>=0; i--){
+        WorkerWait(&workers[i]);
+	}
+
 
 
 
@@ -1385,17 +1388,8 @@ TightDataPointStorageF* SZ_compress_float_3D_MDQ(float *oriData, size_t r1, size
 		free(P0);
 	free(P1);
 
-	/*
-	FILE* file = fopen("typeArray", "w");
-	char buffer[1024];
-	for(int i=0; i<dataLength; i++){
-	    sprintf(buffer, "%d\n", type[i]);
-	    fwrite(buffer, 1, strlen(buffer), file);
-	}
-	 */
-
     gettimeofday(&t1, NULL);
-    printf("duration:%ld\n", (t1.tv_sec - t0.tv_sec)*1000000 + t1.tv_usec - t0.tv_usec);
+    printf("pbp duration:%ld\n", (t1.tv_sec - t0.tv_sec)*1000000 + t1.tv_usec - t0.tv_usec);
 	for(int i=0; i<taskDispatcher.taskCount-1; i++){
 		DynamicIntArray* l = taskDispatcher.leadArray[i];
 		DynamicByteArray* b = taskDispatcher.byteArray[i];
@@ -1414,13 +1408,15 @@ TightDataPointStorageF* SZ_compress_float_3D_MDQ(float *oriData, size_t r1, size
 
 	TightDataPointStorageF* tdps;
 
+	gettimeofday(&t0, NULL);
 	new_TightDataPointStorageF(&tdps, dataLength, exactDataNum,
 			type, exactMidByteArray->array, exactMidByteArray->size,
 			exactLeadNumArray->array,
 			resiBitArray->array, resiBitArray->size,
 			resiBitsLength, 
 			realPrecision, medianValue, (char)reqLength, quantization_intervals, NULL, 0, 0);
-
+    gettimeofday(&t1, NULL);
+    printf("huffman duration:%ld\n", (t1.tv_sec - t0.tv_sec)*1000000 + t1.tv_usec - t0.tv_usec);
 //sdi:Debug
 /*	int sum =0;
 	for(i=0;i<dataLength;i++)

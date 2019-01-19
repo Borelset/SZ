@@ -106,8 +106,10 @@ float computeRangeSize_float(float* oriData, size_t size, float* valueRangeSize,
 		float data = oriData[i];
 		if(min>data)
 			min = data;
+
 		else if(max<data)
 			max = data;
+
 	}
 
 	*valueRangeSize = max - min;

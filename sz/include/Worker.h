@@ -186,6 +186,17 @@ void* WorkerLoop3D(void *args) {
             type = itvNum / 2;
             thisLayerPred[0] = pred + realPrecision * 2 * type;
             curType[0] = type + intvRadius;
+
+            if(fabs(cur-thisLayerPred[0])>realPrecision)
+            {
+                curType[0] = 0;
+                compressSingleFloatValue(vce, cur, realPrecision, medianValue, reqLength, reqBytesLength, resiBitsLength);
+                updateLossyCompElement_Float(vce->curBytes, preDataBytes, reqBytesLength, resiBitsLength, lce);
+                memcpy(preDataBytes,vce->curBytes,4);
+                addExactData(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
+                thisLayerPred[0] = vce->data;
+            }
+
         } else {
             curType[0] = 0;
             compressSingleFloatValue(vce, cur, realPrecision, medianValue, reqLength, reqBytesLength, resiBitsLength);
@@ -205,6 +216,17 @@ void* WorkerLoop3D(void *args) {
                 type = itvNum / 2;
                 thisLayerPred[i] = pred + realPrecision * 2 * type;
                 curType[i] = type + intvRadius;
+
+                if(fabs(cur-thisLayerPred[i])>realPrecision)
+                {
+                    curType[i] = 0;
+                    compressSingleFloatValue(vce, cur, realPrecision, medianValue, reqLength, reqBytesLength, resiBitsLength);
+                    updateLossyCompElement_Float(vce->curBytes, preDataBytes, reqBytesLength, resiBitsLength, lce);
+                    memcpy(preDataBytes,vce->curBytes,4);
+                    addExactData(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
+                    thisLayerPred[i] = vce->data;
+                }
+
             } else {
                 curType[i] = 0;
                 compressSingleFloatValue(vce, cur, realPrecision, medianValue, reqLength, reqBytesLength,
@@ -251,6 +273,17 @@ void* WorkerLoop3D(void *args) {
                     type = itvNum / 2;
                     thisLayerPred[i] = pred + realPrecision * 2 * type;
                     curType[i] = type + intvRadius;
+
+                    if(fabs(cur-thisLayerPred[i])>realPrecision)
+                    {
+                        curType[i] = 0;
+                        compressSingleFloatValue(vce, cur, realPrecision, medianValue, reqLength, reqBytesLength, resiBitsLength);
+                        updateLossyCompElement_Float(vce->curBytes, preDataBytes, reqBytesLength, resiBitsLength, lce);
+                        memcpy(preDataBytes,vce->curBytes,4);
+                        addExactData(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
+                        thisLayerPred[i] = vce->data;
+                    }
+
                 } else {
                     curType[i] = 0;
                     compressSingleFloatValue(vce, cur, realPrecision, medianValue, reqLength, reqBytesLength,
@@ -270,6 +303,17 @@ void* WorkerLoop3D(void *args) {
                     type = itvNum / 2;
                     thisLayerPred[i] = pred + realPrecision * 2 * type;
                     curType[i] = type + intvRadius;
+
+                    if(fabs(cur-thisLayerPred[i])>realPrecision)
+                    {
+                        curType[i] = 0;
+                        compressSingleFloatValue(vce, cur, realPrecision, medianValue, reqLength, reqBytesLength, resiBitsLength);
+                        updateLossyCompElement_Float(vce->curBytes, preDataBytes, reqBytesLength, resiBitsLength, lce);
+                        memcpy(preDataBytes,vce->curBytes,4);
+                        addExactData(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
+                        thisLayerPred[i] = vce->data;
+                    }
+
                 } else {
                     curType[i] = 0;
                     compressSingleFloatValue(vce, cur, realPrecision, medianValue, reqLength, reqBytesLength,

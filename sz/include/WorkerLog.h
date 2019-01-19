@@ -37,7 +37,7 @@ void* WorkerLoopLog(void* args){
     float* input = logParams->input;
     float* output = logParams->output;
     unsigned char* signs = logParams->signs;
-    float minLog = 200, maxLog = 0;
+    float minLog = 200, maxLog = -200;
     for(int i=start; i<=end; i++){
         if(input[i] < 0){
             output[i] = -input[i];

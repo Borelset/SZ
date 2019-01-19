@@ -1860,7 +1860,45 @@ void SZ_compress_args_float_NoCkRngeNoGzip_2D_pwr_pre_log(unsigned char** newByt
     else max_abs_log_data = fabs(log2(fabs(min))) > fabs(log2(fabs(max))) ? fabs(log2(fabs(min))) : fabs(log2(fabs(max)));
     float min_log_data = max_abs_log_data;
 	bool positive = true;
-	for(size_t i=0; i<dataLength; i++){
+    struct timeval t0, t1;
+    gettimeofday(&t0, NULL);
+    int threadNum = confparams_cpr->thread_num;
+    printf("threadNum:%d\n", threadNum);
+
+    struct WorkerLog workers[threadNum];
+    struct LogParams logParams[threadNum];
+    int segLength = dataLength/threadNum;
+    float maxLog=-200, minLog=200;
+    for(int i=0; i<threadNum; i++){
+        logParams[i].input = oriData;
+        logParams[i].output = log_data;
+        logParams[i].signs = signs;
+        logParams[i].start = segLength*i;
+        if(i == threadNum-1){
+            logParams[i].end = dataLength-1;
+        }else{
+            logParams[i].end = segLength*(i+1)-1;
+        }
+        WorkerInitLog(&workers[i], &logParams[i]);
+    }
+    struct LogResult* logResult[threadNum];
+    for(int i=threadNum-1; i>=0; i--){
+        WorkerWaitLog(&workers[i], &logResult[i]);
+    }
+    for(int i=0; i<threadNum; i++){
+        if(!logResult[i]->positive){
+            positive = false;
+        }
+        if(logResult[i]->maxLog > maxLog){
+            maxLog = logResult[i]->maxLog;
+        }
+        if(logResult[i]->minLog < minLog){
+            minLog = logResult[i]->minLog;
+        }
+    }
+
+/*
+    for(size_t i=0; i<dataLength; i++){
 		if(oriData[i] < 0){
 			signs[i] = 1;
 			log_data[i] = -oriData[i];
@@ -1874,16 +1912,35 @@ void SZ_compress_args_float_NoCkRngeNoGzip_2D_pwr_pre_log(unsigned char** newByt
 			if(log_data[i] < min_log_data) min_log_data = log_data[i];
 		}
 	}
+ */
 
 	float valueRangeSize, medianValue_f;
-	computeRangeSize_float(log_data, dataLength, &valueRangeSize, &medianValue_f);	
+	//computeRangeSize_float(log_data, dataLength, &valueRangeSize, &medianValue_f);
+    valueRangeSize= maxLog - minLog;
+    medianValue_f = minLog + valueRangeSize / 2;
+    if(minLog < min_log_data) min_log_data = minLog;
+    if(maxLog > max_abs_log_data) max_abs_log_data = maxLog;
 	if(fabs(min_log_data) > max_abs_log_data) max_abs_log_data = fabs(min_log_data);
 	double realPrecision = log2(1.0 + pwrErrRatio) - max_abs_log_data * 1.2e-7;
-	for(size_t i=0; i<dataLength; i++){
+
+    for(int i=0; i<threadNum; i++){
+        logParams[i].realPrecision = realPrecision;
+        logParams[i].zeroValue = min_log_data;
+        WorkerInitTransZero(&workers[i], &logParams[i]);
+    }
+    for(int i=threadNum-1; i>=0; i--){
+        WorkerWaitTransZero(&workers[i]);
+    }
+
+    /*
+    for(size_t i=0; i<dataLength; i++){
 		if(oriData[i] == 0){
 			log_data[i] = min_log_data - 2.0001*realPrecision;
 		}
 	}
+     */
+    gettimeofday(&t1, NULL);
+    printf("log duration:%ld\n", (t1.tv_sec-t0.tv_sec)*1000000 + t1.tv_usec-t0.tv_usec);
 
     TightDataPointStorageF* tdps = SZ_compress_float_2D_MDQ(log_data, r1, r2, realPrecision, valueRangeSize, medianValue_f);
     tdps->minLogValue = min_log_data - 1.0001*realPrecision;
@@ -1923,10 +1980,15 @@ void SZ_compress_args_float_NoCkRngeNoGzip_3D_pwr_pre_log(unsigned char** newByt
     float min_log_data = max_abs_log_data;
 	bool positive = true;
 
+	struct timeval t0, t1;
+	gettimeofday(&t0, NULL);
 	int threadNum = confparams_cpr->thread_num;
+	printf("threadNum:%d\n", threadNum);
+
 	struct WorkerLog workers[threadNum];
 	struct LogParams logParams[threadNum];
 	int segLength = dataLength/threadNum;
+	float maxLog=-200, minLog=200;
 	for(int i=0; i<threadNum; i++){
 		logParams[i].input = oriData;
 		logParams[i].output = log_data;
@@ -1940,20 +2002,21 @@ void SZ_compress_args_float_NoCkRngeNoGzip_3D_pwr_pre_log(unsigned char** newByt
 		WorkerInitLog(&workers[i], &logParams[i]);
 	}
 	struct LogResult* logResult[threadNum];
-	for(int i=0; i<threadNum; i++){
+	for(int i=threadNum-1; i>=0; i--){
 		WorkerWaitLog(&workers[i], &logResult[i]);
 	}
 	for(int i=0; i<threadNum; i++){
 		if(!logResult[i]->positive){
 			positive = false;
 		}
-		if(logResult[i]->maxLog > max_abs_log_data){
-			max_abs_log_data = logResult[i]->maxLog;
+		if(logResult[i]->maxLog > maxLog){
+			maxLog = logResult[i]->maxLog;
 		}
-		if(logResult[i]->minLog < min_log_data){
-			min_log_data = logResult[i]->minLog;
+		if(logResult[i]->minLog < minLog){
+			minLog = logResult[i]->minLog;
 		}
 	}
+
 	/*
 	for(size_t i=0; i<dataLength; i++){
 		if(oriData[i] < 0){
@@ -1969,10 +2032,14 @@ void SZ_compress_args_float_NoCkRngeNoGzip_3D_pwr_pre_log(unsigned char** newByt
 			if(log_data[i] < min_log_data) min_log_data = log_data[i];
 		}
 	}
-	 */
+	*/
 
 	float valueRangeSize, medianValue_f;
-	computeRangeSize_float(log_data, dataLength, &valueRangeSize, &medianValue_f);	
+	//computeRangeSize_float(log_data, dataLength, &valueRangeSize, &medianValue_f);
+	valueRangeSize= maxLog - minLog;
+	medianValue_f = minLog + valueRangeSize / 2;
+	if(minLog < min_log_data) min_log_data = minLog;
+	if(maxLog > max_abs_log_data) max_abs_log_data = maxLog;
 	if(fabs(min_log_data) > max_abs_log_data) max_abs_log_data = fabs(min_log_data);
 	double realPrecision = log2(1.0 + pwrErrRatio) - max_abs_log_data * 1.2e-7;
 
@@ -1981,16 +2048,20 @@ void SZ_compress_args_float_NoCkRngeNoGzip_3D_pwr_pre_log(unsigned char** newByt
 		logParams[i].zeroValue = min_log_data;
 		WorkerInitTransZero(&workers[i], &logParams[i]);
 	}
-	for(int i=0; i<threadNum; i++){
+	for(int i=threadNum-1; i>=0; i--){
 		WorkerWaitTransZero(&workers[i]);
 	}
-	/*
+
+/*
 	for(size_t i=0; i<dataLength; i++){
 		if(oriData[i] == 0){
 			log_data[i] = min_log_data - 2.0001*realPrecision;
 		}
 	}
-	 */
+ */
+
+	gettimeofday(&t1, NULL);
+	printf("log duration:%ld\n", (t1.tv_sec-t0.tv_sec)*1000000 + t1.tv_usec-t0.tv_usec);
 
     TightDataPointStorageF* tdps = SZ_compress_float_3D_MDQ(log_data, r1, r2, r3, realPrecision, valueRangeSize, medianValue_f);
     tdps->minLogValue = min_log_data - 1.0001*realPrecision;
