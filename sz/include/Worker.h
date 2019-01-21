@@ -75,6 +75,15 @@ void* WorkerLoop2D(void *args){
                     type = itvNum/2;
                     lineCache->readCache[i] = pred + realPrecision * 2 * type;
                     lineCache->typeCache[i] = type + intvRadius;
+                    if(fabs(cur-lineCache->readCache[i])>realPrecision)
+                    {
+                        lineCache->typeCache[i] = 0;
+                        compressSingleFloatValue(vce, cur, realPrecision, medianValue, reqLength, reqBytesLength, resiBitsLength);
+                        updateLossyCompElement_Float(vce->curBytes, preDataBytes, reqBytesLength, resiBitsLength, lce);
+                        memcpy(preDataBytes,vce->curBytes,4);
+                        addExactData(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
+                        lineCache->readCache[i] = vce->data;
+                    }
                 }else{
                     lineCache->typeCache[i] = 0;
                     compressSingleFloatValue(vce, cur, realPrecision, medianValue, reqLength, reqBytesLength, resiBitsLength);
@@ -94,6 +103,15 @@ void* WorkerLoop2D(void *args){
                     type = itvNum/2;
                     lineCache->readCache[i] = pred + realPrecision * 2 * type;
                     lineCache->typeCache[i] = type + intvRadius;
+                    if(fabs(cur-lineCache->readCache[i])>realPrecision)
+                    {
+                        lineCache->typeCache[i] = 0;
+                        compressSingleFloatValue(vce, cur, realPrecision, medianValue, reqLength, reqBytesLength, resiBitsLength);
+                        updateLossyCompElement_Float(vce->curBytes, preDataBytes, reqBytesLength, resiBitsLength, lce);
+                        memcpy(preDataBytes,vce->curBytes,4);
+                        addExactData(exactMidByteArray, exactLeadNumArray, resiBitArray, lce);
+                        lineCache->readCache[i] = vce->data;
+                    }
                 }else{
                     lineCache->typeCache[i] = 0;
                     compressSingleFloatValue(vce, cur, realPrecision, medianValue, reqLength, reqBytesLength, resiBitsLength);

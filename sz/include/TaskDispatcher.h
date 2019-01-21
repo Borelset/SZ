@@ -119,11 +119,15 @@ void TaskDispatcherDestroy(struct TaskDispatcher* taskDispatcher){
     for(int i=0; i<taskDispatcher->taskCount-1; i++){
         free_DIA(taskDispatcher->leadArray[i]);
         free_DBA(taskDispatcher->byteArray[i]);
-        free(taskDispatcher->resiArray[i]);
+        free_DIA(taskDispatcher->resiArray[i]);
     }
     free(taskDispatcher->leadArray);
     free(taskDispatcher->byteArray);
     free(taskDispatcher->resiArray);
+    CCSourcePoolDestroy(&taskDispatcher->ccSourcePool);
+    LCSourcePoolDestroy(&taskDispatcher->lcSourcePool);
+    free(taskDispatcher->registerTable);
+    pthread_mutex_destroy(&taskDispatcher->mutex);
 }
 
 struct Task TaskDispatcherGet(struct TaskDispatcher* taskDispatcher){

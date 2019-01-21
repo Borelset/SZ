@@ -298,10 +298,14 @@ void new_TightDataPointStorageF(TightDataPointStorageF **this,
 	(*this)->rtypeArray = NULL;
 	(*this)->rtypeArray_size = 0;
 
+	struct timeval t0, t1;
+	gettimeofday(&t0, NULL);
 	int stateNum = 2*intervals;
 	HuffmanTree* huffmanTree = createHuffmanTree(stateNum);
-	encode_withTree(huffmanTree, type, dataSeriesLength, &(*this)->typeArray, &(*this)->typeArray_size);
-	SZ_ReleaseHuffman(huffmanTree);
+    encode_withTree(huffmanTree, type, dataSeriesLength, &(*this)->typeArray, &(*this)->typeArray_size);
+    SZ_ReleaseHuffman(huffmanTree);
+	gettimeofday(&t1, NULL);
+	printf("huffman duration:%ld\n", (t1.tv_sec - t0.tv_sec)*1000000 + t1.tv_usec - t0.tv_usec);
 		
 	(*this)->exactMidBytes = exactMidBytes;
 	(*this)->exactMidBytes_size = exactMidBytes_size;

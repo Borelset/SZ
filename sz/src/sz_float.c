@@ -620,7 +620,9 @@ TightDataPointStorageF* SZ_compress_float_2D_MDQ(float *oriData, size_t r1, size
 
 	FloatValueCompressElement *vce = (FloatValueCompressElement*)malloc(sizeof(FloatValueCompressElement));
 	LossyCompressionElement *lce = (LossyCompressionElement*)malloc(sizeof(LossyCompressionElement));
-			
+
+	struct timeval t0, t1;
+	gettimeofday(&t0, NULL);
 	/* Process Row-0 data 0*/
 	type[0] = 0;
 	compressSingleFloatValue(vce, spaceFillingValue[0], realPrecision, medianValue, reqLength, reqBytesLength, resiBitsLength);
@@ -729,7 +731,7 @@ TightDataPointStorageF* SZ_compress_float_2D_MDQ(float *oriData, size_t r1, size
 	TaskDispatcherInit(&taskDispatcher, r1, P1, r2, type, spaceFillingValue, szParams);
     struct Worker workers[confparams_cpr->thread_num];
     for(int i=0; i<confparams_cpr->thread_num; i++){
-        WorkerInit(&workers[i], &taskDispatcher, WorkerType3D);
+        WorkerInit(&workers[i], &taskDispatcher, WorkerType2D);
     }
     WorkerWait(&workers[confparams_cpr->thread_num-1]);
 
@@ -850,7 +852,13 @@ TightDataPointStorageF* SZ_compress_float_2D_MDQ(float *oriData, size_t r1, size
 	}
  */
 
-	
+	gettimeofday(&t1, NULL);
+    printf("pbp duration:%ld\n", (t1.tv_sec - t0.tv_sec)*1000000 + t1.tv_usec - t0.tv_usec);
+
+    for(int i=0; i<dataLength; i++){
+        type[i];
+    }
+
 	if(r2!=1)
 		free(P0);
 	free(P1);
@@ -869,18 +877,22 @@ TightDataPointStorageF* SZ_compress_float_2D_MDQ(float *oriData, size_t r1, size
 			addDIA_Data(resiBitArray, r->array[j]);
 		}
 	}
-
+	//TaskDispatcherDestroy(&taskDispatcher);
 
     size_t exactDataNum = exactLeadNumArray->size;
 	
 	TightDataPointStorageF* tdps;
-			
+
+	gettimeofday(&t0, NULL);
 	new_TightDataPointStorageF(&tdps, dataLength, exactDataNum, 
 			type, exactMidByteArray->array, exactMidByteArray->size,  
 			exactLeadNumArray->array,  
 			resiBitArray->array, resiBitArray->size, 
 			resiBitsLength, 
 			realPrecision, medianValue, (char)reqLength, quantization_intervals, NULL, 0, 0);
+	gettimeofday(&t1, NULL);
+    printf("normal duration:%ld\n", (t1.tv_sec - t0.tv_sec)*1000000 + t1.tv_usec - t0.tv_usec);
+
 
 //	printf("exactDataNum=%d, expSegmentsInBytes_size=%d, exactMidByteArray->size=%d\n", 
 //			exactDataNum, expSegmentsInBytes_size, exactMidByteArray->size);
@@ -1416,7 +1428,7 @@ TightDataPointStorageF* SZ_compress_float_3D_MDQ(float *oriData, size_t r1, size
 			resiBitsLength, 
 			realPrecision, medianValue, (char)reqLength, quantization_intervals, NULL, 0, 0);
     gettimeofday(&t1, NULL);
-    printf("huffman duration:%ld\n", (t1.tv_sec - t0.tv_sec)*1000000 + t1.tv_usec - t0.tv_usec);
+    printf("normal duration:%ld\n", (t1.tv_sec - t0.tv_sec)*1000000 + t1.tv_usec - t0.tv_usec);
 //sdi:Debug
 /*	int sum =0;
 	for(i=0;i<dataLength;i++)
