@@ -1,6 +1,3 @@
-fork from SZ master at version : bea6aae5e6881716f778b97288f2b8222e93e3bd
-Parallelism edition
-
 ### About this branch
 fork from SZ master at version : bea6aae5e6881716f778b97288f2b8222e93e3bd  
 Parallelism edition
