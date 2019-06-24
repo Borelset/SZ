@@ -1,3 +1,5 @@
+Involved code has been merged into SZ v2.1
+
 ## Improved SZ
 In ShiftInterval branch, we add a precomputation-based mechanism to accelerating relative-error bounded mode.  
 In Parallelism branch, we add a parallelism method in point-by-point processing stage to achieve an acceleration.
