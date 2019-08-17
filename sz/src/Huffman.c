@@ -347,6 +347,7 @@ void decode_alter(unsigned char *s, size_t targetLength, node t, int *out, int m
 	if(maxBits > 16){
 		maxBits = 16;
 	}
+	//maxBits = 16;
 
     int tableSize = 1 << maxBits;
     int* valueTable = (int*)malloc(tableSize * sizeof(int));

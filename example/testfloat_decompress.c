@@ -133,6 +133,9 @@ int main(int argc, char * argv[])
     double sum = 0, prodSum = 0, relerr = 0;
 
     double maxpw_relerr = 0;
+    double sumSquiredRelativeError = 0.0;
+    double sumRelativeError = 0.0;
+
     for (i = 0; i < nbEle; i++)
     {
         if (Max < ori_data[i]) Max = ori_data[i];
@@ -149,7 +152,8 @@ int main(int argc, char * argv[])
             if(maxpw_relerr<relerr){
                 maxpw_relerr = relerr;
             }
-
+            sumSquiredRelativeError += relerr * relerr;
+	    sumRelativeError += relerr;
         }
 
         if (diffMax < err)
@@ -163,6 +167,9 @@ int main(int argc, char * argv[])
     double std2 = sqrt(sum4/nbEle);
     double ee = prodSum/nbEle;
     double acEff = ee/std1/std2;
+
+    double rmsre = sqrt(sumSquiredRelativeError / nbEle);
+    double mre = sumRelativeError / nbEle;
  
     double mse = sum/nbEle;
     double range = Max - Min;
@@ -176,6 +183,7 @@ int main(int argc, char * argv[])
     printf ("Max relative error = %f\n", diffMax/(Max-Min));
     printf ("Max pw relative error = %e\n", maxpw_relerr);
     printf ("PSNR = %f, NRMSE= %.20G\n", psnr,nrmse);
+    printf ("RMSRE = %.20G, MRE = %.20G\n", rmsre, mre);
     printf ("acEff=%f\n", acEff);
     printf ("compressionRatio = %f\n", compressionRatio);
     free(data);
