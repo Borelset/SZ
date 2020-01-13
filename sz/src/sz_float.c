@@ -30,6 +30,53 @@
 #include "CacheTable.h"
 #include "MultiLevelCacheTableWideInterval.h"
 
+
+void bubbleSort (float arr[], uint64_t len) {
+    float temp;
+    uint64_t i, j;
+    for (i=0; i<len-1; i++) /* 外循环为排序趟数，len个数进行len-1趟 */
+    {
+        for (j=0; j<len-1-i; j++) { /* 内循环为每趟比较的次数，第i趟比较len-i次 */
+            if (arr[j] > arr[j+1]) { /* 相邻元素比较，若逆序则交换（升序为左大于右，降序反之） */
+                temp = arr[j];
+                arr[j] = arr[j+1];
+                arr[j+1] = temp;
+            }
+        }
+        printf("%lu/%lu\n", i, len);
+    }
+}
+
+void merge(float sourceArr[],float tempArr[], uint64_t startIndex, uint64_t midIndex, uint64_t endIndex)
+{
+    uint64_t i = startIndex, j=midIndex+1, k = startIndex;
+    while(i!=midIndex+1 && j!=endIndex+1)
+    {
+        if(sourceArr[i] > sourceArr[j])
+            tempArr[k++] = sourceArr[j++];
+        else
+            tempArr[k++] = sourceArr[i++];
+    }
+    while(i != midIndex+1)
+        tempArr[k++] = sourceArr[i++];
+    while(j != endIndex+1)
+        tempArr[k++] = sourceArr[j++];
+    for(i=startIndex; i<=endIndex; i++)
+        sourceArr[i] = tempArr[i];
+}
+
+void mergeSort(float sourceArr[], float tempArr[], uint64_t startIndex, uint64_t endIndex)
+{
+    uint64_t midIndex;
+    if(startIndex < endIndex)
+    {
+        midIndex = startIndex + (endIndex-startIndex) / 2;//避免溢出int
+        mergeSort(sourceArr, tempArr, startIndex, midIndex);
+        mergeSort(sourceArr, tempArr, midIndex+1, endIndex);
+        merge(sourceArr, tempArr, startIndex, midIndex, endIndex);
+    }
+}
+
 unsigned char* SZ_skip_compress_float(float* data, size_t dataLength, size_t* outSize)
 {
 	*outSize = dataLength*sizeof(float);
@@ -370,6 +417,8 @@ size_t dataLength, float realPrecision, float valueRangeSize, float medianValue_
 	computeReqLength_float(realPrecision, radExpo, &reqLength, &medianValue);	
 
 	int* type = (int*) malloc(dataLength*sizeof(int));
+	float* floatType =  (float*) malloc(dataLength*sizeof(float));
+    float* floatTypeTemp =  (float*) malloc(dataLength*sizeof(float));
 		
 	float* spaceFillingValue = oriData; //
 	
@@ -394,6 +443,7 @@ size_t dataLength, float realPrecision, float valueRangeSize, float medianValue_
 				
 	//add the first data	
 	type[0] = 0;
+	floatType[0] = 0.0;
 	compressSingleFloatValue(vce, spaceFillingValue[0], realPrecision, medianValue, reqLength, reqBytesLength, resiBitsLength);
 	updateLossyCompElement_Float(vce->curBytes, preDataBytes, reqBytesLength, resiBitsLength, lce);
 	memcpy(preDataBytes,vce->curBytes,4);
@@ -406,6 +456,7 @@ size_t dataLength, float realPrecision, float valueRangeSize, float medianValue_
 		
 	//add the second data
 	type[1] = 0;
+	floatType[1] = 0.0;
 	compressSingleFloatValue(vce, spaceFillingValue[1], realPrecision, medianValue, reqLength, reqBytesLength, resiBitsLength);
 	updateLossyCompElement_Float(vce->curBytes, preDataBytes, reqBytesLength, resiBitsLength, lce);
 	memcpy(preDataBytes,vce->curBytes,4);
@@ -424,6 +475,129 @@ size_t dataLength, float realPrecision, float valueRangeSize, float medianValue_
 	float interval = 2*realPrecision;
 	
 	float recip_precision = 1/realPrecision;
+
+	float floatState = 0.0;
+    uint64_t left = 0;
+
+
+    struct timeval t0, t1;
+    gettimeofday(&t0, NULL);
+    for(i=2;i<dataLength;i++)
+    {
+        curData = spaceFillingValue[i];
+        predAbsErr = fabsf(curData - pred);
+        if(predAbsErr<checkRadius){
+            floatState = (predAbsErr*recip_precision)/2;
+            if(curData>=pred)
+            {
+                floatType[i] = floatState + exe_params->intvRadius;
+            }
+            else //curData<pred
+            {
+                floatType[i] = - floatState + exe_params->intvRadius;
+            }
+            left++;
+            continue;
+        }
+        floatType[i] = 0.0;
+    }
+
+    printf("sort start\n");
+
+    mergeSort(floatType, floatTypeTemp, 0, dataLength-1);
+    printf("sort done\n");
+    for(i = 0; i<dataLength; i++){
+        if(floatType[i] != 0){
+            break;
+        }
+    }
+    float* signArray = (float*)malloc(quantization_intervals * sizeof(float));
+    int* signArrayCounter = (int*)malloc(quantization_intervals * sizeof(int));
+    uint64_t totalCounter = 0;
+    memset(signArray, 0, quantization_intervals * sizeof(float));
+    memset(signArrayCounter, 0, quantization_intervals * sizeof(int));
+    int signIndex = 1;
+
+    signArray[0] = 0;
+    signArrayCounter[0] = dataLength-left;
+    totalCounter += dataLength-left;
+
+    while(left){
+        uint64_t startPos = 0, endPos = 0;
+        float startValue = 0;
+        uint64_t maxElements = 0, maxStartPos = 0, maxEndPos = 0, currentElements = 0;
+        for(uint64_t k=0; k<dataLength; k++){
+            if(floatType[k] != 0.0){
+                startPos = k;
+                currentElements = 1;
+                startValue = floatType[k];
+                i = k+1;
+                endPos = k;
+                break;
+            }
+        }
+        printf("start @ %lu\n", i);
+        for(; i<dataLength; i++){
+            if(floatType[i] == 0.0) continue;
+            float tmp = floatType[i];
+            if(tmp - startValue < 1){
+                currentElements++;
+                endPos = i;
+            }else{
+                if(maxElements < currentElements){
+                    maxElements = currentElements;
+                    maxStartPos = startPos;
+                    maxEndPos = endPos;
+                }
+                uint64_t k;
+                uint64_t zeroCounter = 0;
+                for(k = startPos; k<=i; k++){
+                    if(floatType[k] == 0){
+                        continue;
+                    }
+                    if(floatType[i] - floatType[k] <= 1){
+                        break;
+                    }
+                }
+                startPos = k;
+                endPos = i;
+                for(k = startPos; k<=i; k++){
+                    if(floatType[k] == 0){
+                        zeroCounter++;
+                    }
+                }
+                currentElements = endPos - startPos - zeroCounter + 1;
+                startValue = floatType[startPos];
+            }
+        }
+        if(currentElements > maxElements){
+            maxElements = currentElements;
+            maxStartPos = startPos;
+            maxEndPos = endPos;
+        }
+        float signTmp = (floatType[maxEndPos] + floatType[maxStartPos])/2;
+        signArray[signIndex] = signTmp;
+        signArrayCounter[signIndex] = maxElements;
+        totalCounter += maxElements;
+        signIndex++;
+        for(uint64_t k = maxStartPos; k<=maxEndPos; k++){
+            floatType[k] = 0.0;
+        }
+        left -= maxElements;
+        printf("#%d : %f = %lu\n", signIndex, signArray[signIndex], maxElements);
+    }
+    gettimeofday(&t1, NULL);
+    printf("duration:%lu\n", (t1.tv_sec-t0.tv_sec)*1000000+t1.tv_usec-t0.tv_usec);
+
+    float entropy = 0.0;
+    for(int k=0; k<signIndex; k++){
+        float ratio = (float)signArrayCounter[k] / totalCounter;
+        if(ratio == 0) continue;
+        entropy += log2f(ratio)*ratio;
+    }
+    printf("classer entropy:%f\n", -entropy);
+
+
 	
 	for(i=2;i<dataLength;i++)
 	{	
@@ -448,7 +622,7 @@ size_t dataLength, float realPrecision, float valueRangeSize, float medianValue_
 			//double-check the prediction error in case of machine-epsilon impact	
 			if(fabs(curData-pred)>realPrecision)
 			{	
-				type[i] = 0;				
+				type[i] = 0.0;
 				compressSingleFloatValue(vce, curData, realPrecision, medianValue, reqLength, reqBytesLength, resiBitsLength);
 				updateLossyCompElement_Float(vce->curBytes, preDataBytes, reqBytesLength, resiBitsLength, lce);
 				memcpy(preDataBytes,vce->curBytes,4);

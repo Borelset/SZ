@@ -160,6 +160,14 @@ void init(HuffmanTree* huffmanTree, int *s, size_t length)
 		freq[index]++;
 	}
 
+    float entropy = 0.0;
+	for(int k=0; k<huffmanTree->allNodes; k++){
+	    float ratio = (float)freq[k]/length;
+	    if(ratio == 0) continue;
+	    entropy += log2f(ratio)*ratio;
+	}
+    printf("quantization entropy:%f\n", -entropy);
+
 	for (i = 0; i < huffmanTree->allNodes; i++)
 		if (freq[i])
 			qinsert(huffmanTree, new_node(huffmanTree, freq[i], i, 0, 0));

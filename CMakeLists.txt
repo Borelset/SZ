@@ -23,6 +23,8 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     "MinSizeRel" "RelWithDebInfo")
 endif()
 
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
+
 #set the Compiler ID for clang on macOS to AppleClang
 if (POLICY CMP0025)
   cmake_policy (SET CMP0025 NEW)
