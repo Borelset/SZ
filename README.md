@@ -9,5 +9,5 @@ thread_num = 8
 ```
 in config file, these value could be specified as user's requiredment
 
-### Relative publication
+### Related publication
 Xiangyu Zou, Tao Lu, Sheng Di, Dingwen Tao, Wen Xia, Xuan Wang, Weizhe Zhang and Qing Liao, "Accelerating Lossy Compression on HPC datasets via Partitioning Computation for Parallel Processing", in Proceedings of the 21st IEEE International Conference on High Performance Computing and Communication(HPCC '19, CCF-C), Zhangjiajie, China, August. 2019.
