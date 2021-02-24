@@ -14,5 +14,5 @@ plus_bits = 3
 ```
 in config file  
 
-### Relative publication
+### Related publication
 Xiangyu Zou, Tao Lu, Wen Xia, Xuan Wang, Weizhe Zhang, Sheng Di, Dingwen Tao and Franck Cappello, "Accelerating Relative-error Bounded Lossy Compression for HPC datasets with Precomputation-Based Mechanisms", in Proceedings of the 35th International Conference on Massive Storage Systems and Technology (MSST '19), Santa Clara, CA, USA, May. 2019.
